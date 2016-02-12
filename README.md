@@ -1,2 +1,2 @@
 # bed.php
-The place you REST – PHP framework specifically designed for building REST APIs
+This is a work in progress and a proof of concept. All the code is being developed with PHP 7.
