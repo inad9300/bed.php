@@ -1,6 +1,6 @@
 <?php
 
-require_once 'Dao.php';
+require_once 'Transaction.php';
 require_once 'ErrorResponse.php';
 require_once 'HttpStatus.php';
 require_once 'Utils/Arrays.php';
@@ -19,7 +19,7 @@ class Resource {
 
 
     public function __construct(array $config) {
-        self::$_config = $config;
+        $this->_config = $config;
     }
 
 
@@ -28,32 +28,197 @@ class Resource {
     }
 
 
-    // GET /resources
-    public function getMany(array $filter = null): array {}
-
     private function _getAccessibleFields(): array {
         $result = [];
         foreach ($this->_config['fields'] as $field) {
-            if (/* TODO*/true) {
+            if (/* TODO */true) {
                 $result[] = $field['name'];
             }
         }
         return $result;
     }
 
+
+    private function _quote(array $cols): string {
+        return implode(', ', array_map(function ($col) {
+            return '`' . $col . '`';
+        }, $cols));
+    }
+
+    private function _placeholders(int $n, string $symbol = '?'): string {
+        $separator = ', ';
+        $input = $symbol . $separator;
+        return rtrim(str_repeat($input, $n), $separator);
+    }
+
+    // Returns only the fields of the resource in the specified subset, giving
+    // them in the same order as in that subset.
+    private function _selectFields(array $fields, array $resource): array {
+        $finalResource = [];
+        foreach ($fields as $field) {
+            if (isset($resource[$field])) {
+                $finalResource[$field] = $resource[$field];
+            }
+        }
+        return $finalResource;
+    }
+
+
+    // GET /resources
+    public function getMany(array $filter = null): array {
+        $queryData = [];
+
+        if ($filter['fields']) {
+            // TODO: prepend the table name to each field
+            $fields = array_filter(explode(',', $filter['fields']), function ($elem) {
+                return in_array($elem, $this->_getAccessibleFields());
+            });
+
+            if (count($fields) < 1) {
+                (new ErrorResponse(400, 'Too few fields selected', 'At least one valid field must be selected'));
+            }
+        } else {
+            $fields = $this->_getAccessibleFields();
+        }
+
+        if ($filter['sort']) {
+            $sortCriteria = [];
+            $sortParams = explode(',', $filter['sort']);
+            foreach ($sortParams as $param) {
+                // TODO: check if field is sortable
+                if ($param[0] === '-' ||
+                    $param[0] === '+') {
+                    $sortCriteria[] = '`' . substr($param, 1) . '` ' . $param[0] === '-' ? 'ASC' : 'DESC';
+                } else {
+                    $sortCriteria[] = '`' . $param . '` DESC';
+                }
+            }
+            $order = implode(', ', $sortCriteria);
+        } else {
+            // TODO: get default order
+        }
+
+        $maxResults = $filter['limit'] ? ((int) $filter['limit']) : $this->_DEFAULT_LIMIT;
+
+        $limit = 'LIMIT ?';
+        $queryData[] = $maxResults;
+
+        if ($filter['page']) {
+            $limit .= ' OFFSET ?';
+            $queryData[] = $maxResults * ((int) $filter['page']);
+        }
+
+        $joins = [];
+        $conditions = [];
+
+        if ($filter['filter']) {
+            // NOTE: the filter's shape can be similar to "key:value,!value" or
+            // "entity.key:value"
+
+            $filters = explode(';', $filter['filter']);
+
+            foreach ($filters as $f) {
+                list($key, $value) = explode(':', $f);
+                $values = explode(',', $value);
+
+                if (strpos($key, '.') === false) { // Simple attribute
+                    // TODO: check if $key is valid and filterable
+                    $condition = '(';
+
+                    $positives = [];
+                    $negatives = [];
+                    $isNull = false;
+                    $isNotNull = false;
+
+                    foreach ($values as $value) {
+                        if ($value[0] === '!') {
+                            if ($value === '!null')
+                                $isNotNull = true;
+                            else
+                                $negatives[] = substr($value, 1);
+                        } else {
+                            if ($value === 'null')
+                                $isNull = true;
+                            else
+                                $positives[] = $value;
+                        }
+                    }
+
+                    $realKey = '`' . $this->_config['name'] . '.' . $key . '`';
+
+                    $condition .= $realKey . ' IN (' . implode(', ', $positives) . ')';
+
+                    $condition = ')';
+                } else { // Attribute of a related entity
+                    list($entity, $key) = explode('.', $key);
+                    // TODO
+                }
+            }
+        }
+
+        $t = new Transaction();
+
+        if ($filter['join']) {
+            $joinedData = [];
+            $relatedResources = explode(',', $filter['join']);
+
+            foreach ($relatedResources as $relatedResource) {
+                // TODO: validate that the values are properly formed
+                list($resourceName, $resourceFilterRaw) = explode('(', $relatedResource);
+
+                if (/* TODO: check if they are really related */true) {
+                    $resource = new Resource(/* TODO: get config from resource name */);
+                    $resourceFilterRaw = rtrim($resourceFilterRaw, ')');
+                    $resourceFilter = [];
+                    foreach (explode('&', $resourceFilterRaw) as $chunk) {
+                        list($key, $value) = explode('=', $chunk);
+                        $resourceFilter[rawurldecode($key)] = rawurldecode($value); // NOTE: urldecode may be a better candidate
+                    }
+                    $joinedData[$resourceName] = $resource->getMany($resourceFilter); // TODO: allow passing an in-progress transaction
+                }
+            }
+        }
+
+        $q = 'SELECT ' . _quote($fields) . ' FROM `' . $this->_config['name'] . '`';
+
+        if (count($conditions) > 0) {
+            $q .= ' WHERE ' . implode(' AND ', $conditions);
+        }
+
+        $t->query($q, $queryData);
+        $t->end();
+
+        // TODO: prepare final result
+    }
+
     // GET /resources/{id}
     public function getOne(int $id): array {
-        (new Dao())->query(
-            'SELECT ' . $this->_getAccessibleFields() . 
-            ' FROM `' . $this->_config['name'] . '` WHERE id = ?',
+        (new Transaction())->query(
+            'SELECT ' . _quote($this->_getAccessibleFields()) . 
+            ' FROM `' . $this->_config['name'] . '` WHERE `id` = ?',
             [$id]
         );
     }
 
-
     // POST /resources
     public function create(array $data): array {
-        // INSERT INTO tbl_name (... cols ...) VALUES (...)[, (...)];
+        $fields = $this->_getAccessibleFields();
+
+        $q = 
+            'INSERT INTO `' . $this->_config['name'] . '` (' . _quote($fields) .
+            ') VALUES (' . _placeholders(count($fields)) . ')';
+        
+        $t = new Transaction();
+
+        if (\Utils\Arrays\isAssociative($data)) {
+            $t->query($q, _selectFields($fields, $data));
+        } else {
+            foreach ($data as $resource) {
+                $t->query($q, _selectFields($fields, $resource));
+            }
+        }
+
+        $t->end();
     }
 
 

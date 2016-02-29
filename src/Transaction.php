@@ -1,12 +1,14 @@
 <?php
 
+// TODO: make sure that the already-prepared statements are used to increase performance
+
 /*
-    $dao = new Dao();
-    $dao->query('SELECT * FROM users WHERE id = ?', [3]);
-    $dao->persist();
+    $t = new Transaction();
+    $t->query('SELECT * FROM users WHERE id = ?', [3]);
+    $t->end();
 */
 
-class Dao {
+class Transaction {
 
     private const _DEFAULT_TRIM_MASK = ' \t\n\r\0\x0B';
 
@@ -44,7 +46,7 @@ class Dao {
             if ($res === false) {
                 throw new RuntimeException('Query execution failed.');
             }
-            if (strtoupper(substr(ltrim($q, '(' . Dao::_DEFAULT_TRIM_MASK), 0, 6)) === 'SELECT') {
+            if (strtoupper(substr(ltrim($q, '(' . Transaction::_DEFAULT_TRIM_MASK), 0, 6)) === 'SELECT') {
                 return $stmt->fetchAll();
             }
             return $stmt->rowCount();
@@ -57,9 +59,9 @@ class Dao {
         }
     }
 
-    // TODO: persist() may not be called if only a SELECT is performed. Check if
+    // TODO: end() may not be called if only a SELECT is performed. Check if
     // no committing in such case has any consequences.
-    public function persist() {
+    public function end() {
         $res = $this->_dbh->commit();
         if ($res === false) {
             $this->_dbh->rollBack();

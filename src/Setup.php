@@ -43,4 +43,4 @@ set_error_handler(function (int $errno, string $errstr) {
 });
 
 
-// TODO: test: throw new Exception("Error Processing Request", 1);
+// TODO: test: throw new Exception('Error Processing Request', 1);
