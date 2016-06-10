@@ -1,23 +1,31 @@
 <?php
 
+/**
+ * Database abstraction.
+ */
 class Database {
 
 	private static $_dbh;
 	private static $_config;
 	private static $_pdoOptions;
 
-
+	/**
+	 * Wrapper function to centralize all the database configuration.
+	 */
 	public static function config(array $config, array $pdoOptions = null) {
 		// Validate required attributes
 		foreach (['type', 'host', 'name', 'user', 'pass'] as $attr)
 			if (empty($config[$attr]))
 				throw new InvalidArgumentException(
-					"The '$attr' attribute is required to configure the database");
+					"The '$attr' is required to configure the database");
 
 		self::$_config = $config;
 		self::$_pdoOptions = $pdoOptions;
 	}
 
+	/**
+	 * Obtain the instance representing the database connection.
+	 */
 	public static function get(): PDO {
 		// Establish the connection only if the database instance is requested,
 		// and only the first time
@@ -27,7 +35,12 @@ class Database {
 					. ';dbname=' . self::$_config['name']
 					. ';charset=' . self::$_config['charset'] ?: 'utf8mb4';
 
-			self::$_dbh = new PDO($connStr, self::$_config['user'], self::$_config['pass'], self::$_pdoOptions);
+			self::$_dbh = new PDO(
+				$connStr,
+				self::$_config['user'],
+				self::$_config['pass'],
+				self::$_pdoOptions
+			);
 		}
 
 		return self::$_dbh;
@@ -45,10 +58,15 @@ class Database {
 		$stmt = Database::get()->prepare($q);
 
 		for ($i = 0, $c = count($params); $i < $c; ++$i)
-			$stmt->bindParam($i, $params[$i], self::_pdoType(gettype($params[$i])));
+			$stmt->bindParam(
+				$i,
+				$params[$i],
+				self::_pdoType(gettype($params[$i]))
+			);
 
 		if (($stmt->execute()) === false)
-			throw new RuntimeException('Query execution failed: ' . ($stmt->errorInfo())[2]);
+			throw new RuntimeException(
+				'Query execution failed: ' . ($stmt->errorInfo())[2]);
 
 		if (self::_isSelect($q))
 			return $stmt->fetchAll();
