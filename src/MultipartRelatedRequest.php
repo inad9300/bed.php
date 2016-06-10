@@ -1,8 +1,9 @@
 <?php
 
-/* Example (from https://developers.google.com/drive/v2/web/manage-uploads):
+/* Reference example
+    (source: https://developers.google.com/drive/v3/web/manage-uploads)
 
-    POST /upload/drive/v2/files?uploadType=multipart HTTP/1.1
+    POST /upload/drive/v3/files?uploadType=multipart HTTP/1.1
     Host: www.googleapis.com
     Authorization: Bearer your_auth_token
     Content-Type: multipart/related; boundary=foo_bar_baz
@@ -12,7 +13,7 @@
     Content-Type: application/json; charset=UTF-8
 
     {
-      "title": "My File"
+      "name": "My File"
     }
 
     --foo_bar_baz
@@ -36,12 +37,13 @@ class __MultipartRelatedChunk__ {
             $this->_headers[$key] = trim($value);
         }
 
-        list($contentType, $contentTypeExtra) = explode(';', $this->_headers['Content-Type']);
+        list($contentType, $contentTypeMeta) = explode(';', $this->_headers['Content-Type']);
 
         switch ($contentType) {
         case 'application/json':
             $this->_payload = json_decode($payload, true);
             break;
+        case 'text/xml':
         case 'application/xml':
             $this->_payload = new SimpleXMLElement($payload);
             break;
