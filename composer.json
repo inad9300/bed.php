@@ -1,6 +1,9 @@
 {
 	"name": "inad9300/bed.php",
+	"type": "library",
 	"description": "REST-oriented PHP micro-framework",
+	"keywords": ["REST", "API", "micro-framework"],
+	"homepage": "https://github.com/inad9300/bed.php",
 	"license": "GNU AGPL",
 	"require": {
 		"php": "^7.0"
