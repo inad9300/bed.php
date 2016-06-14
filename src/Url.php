@@ -4,12 +4,15 @@
  * Class representing a URL with all its parts, as defined by parse_url()
  * (http://php.net/manual/en/function.parse-url.php). In addition, it provides
  * a way to access the different query parameters via the getParam() and
- * getParams() functions.
+ * getParams() functions, and a way to access particular parts of the path
+ * through getPathChunk() and getPathAfter(), allowing easy access to route
+ * parameters.
  */
 class Url {
 
 	private $_full;
 	private $_fullString;
+	private $_pathChunks;
 
 	/**
 	 * Accept a URL, using the current one by default.
@@ -35,6 +38,35 @@ class Url {
 
 	public function getPath(): string {
 		return $this->_full['path'];
+	}
+
+	/**
+	 * Get the part of the path in the given position, e.g. getPathChunk(1)
+	 * would return '3' given the path '/users/3'.
+	 */
+	public function getPathChunk(int $pos): string {
+		$this->_fillPathChunks();
+
+		return $this->_pathChunks[$pos];
+	}
+
+	/**
+	 * Get the part of the path right after the one matching the argument, e.g.
+	 * getPathAfter('users') would return '3' given the path '/users/3'.
+	 */
+	public function getPathAfter(string $pathPart): string {
+		$this->_fillPathChunks();
+
+		for ($i = 0, $c = count($this->_pathChunks); $i < $c; ++$i)
+			if ($this->_pathChunks[$i] === $pathPart && $i + 1 < $c)
+				return $this->_pathChunks[$i + 1];
+
+		return null;
+	}
+
+	private function _fillPathChunks() {
+		if ($this->_pathChunks === null)
+			$this->_pathChunks = explode('/', trim($this->_full['path'], '/'));
 	}
 
 	public function getQuery(): string {

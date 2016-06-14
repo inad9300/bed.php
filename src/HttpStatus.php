@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Static map from HTTP statuses' names to their numeric codes. It allows to
+ * Static map from HTTP statuses' names to their numeric codes, allowing to
  * write more semantic code.
  */
 abstract class HttpStatus {

@@ -60,7 +60,7 @@ set_exception_handler(function (Throwable $e) {
 		'detail' => $e->getMessage ?: ''
 	];
 
-	if (!Env::isProd())
+	if (Env::isTest())
 		$data['debug'] = [
 			'exception' => get_class($e) . ' (' . $e->getCode() . ')',
 			'file' => $e->getFile() . ':' . $e->getLine(),
@@ -82,7 +82,7 @@ set_error_handler(function (
 		'detail' => $errstr ?: ''
 	];
 
-	if (!Env::isProd())
+	if (Env::isTest())
 		$data['debug'] = [
 			'error' => $errno,
 			'file' => $errfile . ':' . $errline,

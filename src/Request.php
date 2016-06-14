@@ -46,7 +46,7 @@ class Request {
 	}
 
 	public function getHeader(string $key): string {
-		return ($this->getHeaders())[$key];
+		return $this->getHeaders()[$key];
 	}
 
 	public function getPayload() {
