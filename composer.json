@@ -1,5 +1,8 @@
 {
 	"name": "inad9300/bed.php",
 	"description": "REST-oriented PHP micro-framework",
-	"license": "GNU AGPL"
+	"license": "GNU AGPL",
+	"require": {
+		"php": "^7.0"
+	}
 }
