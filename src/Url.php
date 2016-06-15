@@ -18,10 +18,12 @@ class Url {
 	 * Accept a URL, using the current one by default.
 	 */
 	public function __construct(string $url = null) {
+		// NOTE: $_SERVER['REQUEST_SCHEME'] seems not to be reliable
+		$protocol = isset($_SERVER['HTTPS']) ? 'https://' : 'http://';
+
 		$this->_fullString = $url !== null
 			? $url
-			: $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST']
-				. $_SERVER['REQUEST_URI'];
+			: $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
 		$this->_full = parse_url($this->_fullString);
 		if ($this->_full === false)
@@ -54,7 +56,7 @@ class Url {
 	 * Get the part of the path right after the one matching the argument, e.g.
 	 * getPathAfter('users') would return '3' given the path '/users/3'.
 	 */
-	public function getPathAfter(string $pathPart): string {
+	public function getPathAfter(string $pathPart) {
 		$this->_fillPathChunks();
 
 		for ($i = 0, $c = count($this->_pathChunks); $i < $c; ++$i)
@@ -74,7 +76,7 @@ class Url {
 	}
 
 	public function getParam(string $key): string {
-		return $_GET[$key];
+		return $_GET[$key] ?? '';
 	}
 
 	public function getParams(): array {

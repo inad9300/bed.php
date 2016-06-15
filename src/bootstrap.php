@@ -1,5 +1,8 @@
 <?php
 
+// Example of file defining a common setup process
+
+
 declare(strict_types=1);
 
 mb_internal_encoding('UTF-8');
@@ -10,8 +13,9 @@ header_remove('X-Powered-By');
 
 
 require_once 'Env.php';
-require_once 'HttpStatus.php';
+require_once 'Router.php';
 require_once 'Response.php';
+require_once 'HttpStatus.php';
 require_once 'Database.php';
 
 
@@ -57,7 +61,7 @@ if (Env::isProd()) {
 set_exception_handler(function (Throwable $e) {
 	$data = [
 		'title' => 'Unexpected exception',
-		'detail' => $e->getMessage ?: ''
+		'detail' => $e->getMessage() ?: ''
 	];
 
 	if (Env::isTest())

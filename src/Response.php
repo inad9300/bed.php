@@ -18,13 +18,14 @@ class Response {
 		array $headers = [],
 		$payload = null
 	) {
-		$this->status = $status;
-		$this->headers = $headers;
-		$this->payload = $payload;
+		$this->_status = $status;
+		$this->_headers = $headers;
+		$this->_payload = $payload;
 	}
 
 	public function setStatus(int $status) {
 		$this->_status = $status;
+		return $this;
 	}
 
 	public function getStatus(): int {
@@ -33,6 +34,7 @@ class Response {
 
 	public function setHeaders(array $headers) {
 		$this->_headers = $headers;
+		return $this;
 	}
 
 	public function getHeaders(): array {
@@ -40,19 +42,20 @@ class Response {
 	}
 
 	public function addHeaders(array $headers) {
-		foreach ($headers as $h)
-			$this->_headers[] = $h;
+		foreach ($headers as $key => $value)
+			$this->_headers[$key] = $value;
+
+		return $this;
 	}
 
-	public function addHeader(string $header, string $value) {
-		if (!isset($value))
-			$this->_headers[] = $header;
-		else
-			$this->_headers[] = $header . ': ' . ($value ?: '');
+	public function addHeader(string $key, string $value) {
+		$this->_headers[$key] = $value;
+		return $this;
 	}
 
 	public function setPayload($payload) {
 		$this->_payload = $payload;
+		return $this;
 	}
 
 	public function getPayload() {
@@ -61,20 +64,24 @@ class Response {
 
 	public function send() {
 		// Send status
-		$res = http_send_status($this->_status);
+		$res = http_response_code($this->_status);
 		if ($res === false)
 			throw new RuntimeException('HTTP status could not be send');
 
+		// Add default Content-Type header
+		if (!array_key_exists('Content-Type', $this->_headers))
+			$this->_headers['Content-Type'] = 'application/json';
+
 		// Send headers
-		foreach ($this->headers as $h)
-			header($h);
+		foreach ($this->_headers as $key => $value)
+			header($key . ':' . $value);
 
 		// Send payload, encoding everything as JSON
 		$mask = JSON_PRESERVE_ZERO_FRACTION;
 		if (!Env::isProd())
 			$mask |= JSON_PRETTY_PRINT;
 
-		$res = json_encode($this->_payload ?: '', $mask);
+		$res = json_encode($this->_payload ?? '', $mask);
 		if ($res === false)
 			throw new RuntimeException('Error encoding data into JSON');
 

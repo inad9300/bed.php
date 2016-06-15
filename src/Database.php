@@ -33,7 +33,7 @@ class Database {
 			$connStr = self::$_config['type']
 					. ':host=' . self::$_config['host']
 					. ';dbname=' . self::$_config['name']
-					. ';charset=' . self::$_config['charset'] ?: 'utf8mb4';
+					. ';charset=' . (self::$_config['charset'] ?? 'utf8mb4');
 
 			self::$_dbh = new PDO(
 				$connStr,
@@ -57,16 +57,14 @@ class Database {
 	public static function run(string $q, array $params = []) {
 		$stmt = Database::get()->prepare($q);
 
-		for ($i = 0, $c = count($params); $i < $c; ++$i)
+		foreach ($params as $i => $param)
 			$stmt->bindParam(
 				$i,
-				$params[$i],
-				self::_pdoType(gettype($params[$i]))
+				$param,
+				self::_pdoType(gettype($param))
 			);
 
-		if (($stmt->execute()) === false)
-			throw new RuntimeException(
-				'Query execution failed: ' . ($stmt->errorInfo())[2]);
+		$stmt->execute();
 
 		if (self::_isSelect($q))
 			return $stmt->fetchAll();
@@ -89,9 +87,9 @@ class Database {
 	}
 
 	// Default trim()'s mask plus left parentheses
-	private const _TRIM_SQL_MASK = '( \t\n\r\0\x0B';
+	const _TRIM_SQL_MASK = "( \t\n\r\0\x0B";
 
-	private static function _isSelect(strign $stmt): bool {
+	private static function _isSelect(string $stmt): bool {
 		return 'SELECT' === strtoupper(
 			substr(
 				ltrim($stmt, Database::_TRIM_SQL_MASK), 0, 6

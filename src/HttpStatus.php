@@ -1,5 +1,8 @@
 <?php
 
+// IDEA: build two more interfaces with information about HTTP headers. See
+// https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+
 /**
  * Static map from HTTP statuses' names to their numeric codes, allowing to
  * write more semantic code.

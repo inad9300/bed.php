@@ -12,18 +12,21 @@ require_once 'FileRequest.php';
  */
 class Request {
 
-	private static $_instance = new Request();
+	private static $_instance;
 	private static $_headers;
 	private static $_url;
 	private static $_payload;
 
 	public static function getInstance(): Request {
+		if (self::$_instance === null)
+			self::$_instance = new self();
+
 		return self::$_instance;
 	}
 
 	public function getMethod(): string {
 		return $this->getHeader('X-Http-Method-Override')
-			|| $_SERVER['REQUEST_METHOD'];
+			?: $_SERVER['REQUEST_METHOD'];
 	}
 
 	// Get the full URL
@@ -45,8 +48,11 @@ class Request {
 		return self::$_headers;
 	}
 
-	public function getHeader(string $key): string {
-		return $this->getHeaders()[$key];
+	public function getHeader(string $key) {
+		if (array_key_exists($key, $this->getHeaders()))
+			return $this->getHeaders()[$key];
+
+		return null;
 	}
 
 	public function getPayload() {

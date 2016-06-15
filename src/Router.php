@@ -1,5 +1,7 @@
 <?php
 
+// TODO: re-think the interceptor concept
+
 require_once 'Request.php';
 require_once 'RequestInterceptor.php';
 
@@ -24,10 +26,6 @@ class Router {
 	private static $_globalMiddleware;
 
 	public static function setPathPrefix(string $url) {
-		if (filter_var($url, FILTER_VALIDATE_URL) === false)
-			throw new InvalidArgumentException(
-				'The provided value must be a valid URL');
-
 		self::$_pathPrefix = trim($url, '/');
 		self::$_pathPrefixLen = strlen(self::$_pathPrefix);
 	}
@@ -59,8 +57,16 @@ class Router {
 		$realRoute = explode('/', trim($reqPath, '/'));
 
 		// Get rid of the prefix
-		if ($realRoute[0] === self::$_pathPrefix)
-			array_shift($realRoute);
+		if ($realRoute[0] === self::$_pathPrefix) {
+			if (count($realRoute) > 1)
+				array_shift($realRoute);
+			else
+				$realRoute[0] = '';
+		} else
+			return false;
+
+		if ($realRoute === $route)
+			return true;
 
 		$parts = count($realRoute);
 
@@ -68,7 +74,7 @@ class Router {
 			return false;
 
 		for ($i = 0; $i < $parts; ++$i)
-			if ($route[$i] !== $realRoute[$i] ||
+			if ($route[$i] !== $realRoute[$i] &&
 				!self::_isValidPlaceholder($route[$i]))
 				return false;
 
@@ -86,7 +92,7 @@ class Router {
 			}
 	}
 
-	private function _runAfterMiddleware(
+	private static function _runAfterMiddleware(
 		array $middleware,
 		Response $res
 	): Response {
@@ -107,12 +113,14 @@ class Router {
 			return;
 
 		if (isset(self::$_globalMiddleware))
-			_runBeforeMiddleware(self::$_globalMiddleware);
+			self::_runBeforeMiddleware(self::$_globalMiddleware);
 
-		if ($handler === null)
+		$noMiddleware = $handler === null;
+
+		if ($noMiddleware)
 			$handler = $middleware;
 		else
-			_runBeforeMiddleware($middleware);
+			self::_runBeforeMiddleware($middleware);
 
 		if (!is_callable($handler))
 			throw new InvalidArgumentException(
@@ -127,11 +135,11 @@ class Router {
 			throw new RuntimeException(
 				'Route handlers must return a Response object');
 
-		if ($handler !== null)
-			$res = _runAfterMiddleware($middleware, $res);
+		if (!$noMiddleware)
+			$res = self::_runAfterMiddleware($middleware, $res);
 
 		if (isset(self::$_globalMiddleware))
-			$res = _runAfterMiddleware(self::$_globalMiddleware, $res);
+			$res = self::_runAfterMiddleware(self::$_globalMiddleware, $res);
 
 		$res->send();
 		exit;
@@ -165,6 +173,8 @@ class Router {
 	}
 
 	// IDEA: should this be middleware-aware as well?
+	// IDEA: do something (exit? return?) if the route doesn't start with the
+	// API prefix
 	// NOTE: must be called after all the routes are set up.
 	public static function default(callable $handler) {
 		$res = call_user_func(
