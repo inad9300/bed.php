@@ -53,9 +53,15 @@ class Database {
 	 * Specifically, there is no good support for LOBs: the only operation
 	 * permitted is insertion, and only when the given argument is of type
 	 * 'resource'. More information in http://php.net/manual/en/pdo.lobs.php
+	 *
+	 * TODO: adapt to complex queries, supporting (at least):
+	 * - Binary columns
+	 * - Auto selection (casting) of PDO types, both when writing and reading
+	 * - Arrays of arrays as $params, to take advantage of prepared statements
+	 * - Transactions
 	 */
 	public static function run(string $q, array $params = []) {
-		$stmt = Database::get()->prepare($q);
+		$stmt = self::get()->prepare($q);
 
 		foreach ($params as $i => $param)
 			$stmt->bindParam(
@@ -92,7 +98,7 @@ class Database {
 	private static function _isSelect(string $stmt): bool {
 		return 'SELECT' === strtoupper(
 			substr(
-				ltrim($stmt, Database::_TRIM_SQL_MASK), 0, 6
+				ltrim($stmt, self::_TRIM_SQL_MASK), 0, 6
 			)
 		);
 	}

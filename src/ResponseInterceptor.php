@@ -1,6 +1,6 @@
 <?php
 
-require_once 'Response.php';
+require_once 'Interceptor.php';
 
 /**
  * Interface to be implemented by the middleware that is meant to be run after
@@ -8,6 +8,4 @@ require_once 'Response.php';
  * example of such middleware may be one that adds certain HTTP headers to add
  * CORS support.
  */
-interface ResponseInterceptor {
-	public function handle(Response $res): Response;
-}
+interface ResponseInterceptor extends Interceptor {}

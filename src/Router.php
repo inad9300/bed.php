@@ -1,6 +1,7 @@
 <?php
 
 // TODO: re-think the interceptor concept
+// IDEA: pass *::class as middleware, as oppose to class instances
 
 require_once 'Request.php';
 require_once 'RequestInterceptor.php';
@@ -47,7 +48,8 @@ class Router {
 	}
 
 	private static function _isValidPlaceholder(string $str): bool {
-		return $str[0] === '{'
+		return $str !== ''
+			&& $str[0] === '{'
 			&& substr($str, -1) === '}';
 	}
 
@@ -81,26 +83,30 @@ class Router {
 		return true;
 	}
 
-	private static function _runBeforeMiddleware(array $middleware) {
+	private static function _runMiddleware(
+		array $middleware,
+		Response $res,
+		string $baseInterceptor
+	): Response {
 		foreach ($middleware as $m)
-			if ($m instanceof RequestInterceptor) {
-				$res = $m->handle(Request::getInstance());
+			if (is_subclass_of($m, $baseInterceptor))
+				$res = (new $m)->handle(Request::getInstance(), $res);
 
-				// An optional Response can be returned
-				if ($res !== null && $res instanceof Response)
-					$res->send();
-			}
+		return $res;
+	}
+
+	private static function _runBeforeMiddleware(
+		array $middleware,
+		Response $res
+	): Response {
+		return self::_runMiddleware($middleware, $res, 'RequestInterceptor');
 	}
 
 	private static function _runAfterMiddleware(
 		array $middleware,
 		Response $res
 	): Response {
-		foreach ($middleware as $m)
-			if ($m instanceof ResponseInterceptor)
-				$res = $m->handle($res);
-
-		return $res;
+		return self::_runMiddleware($middleware, $res, 'ResponseInterceptor');
 	}
 
 	private static function _doRoute(
@@ -112,25 +118,23 @@ class Router {
 		if (!self::_isMethod($method) || !self::_isRoute($route))
 			return;
 
+		$res = new Response();
+
 		if (isset(self::$_globalMiddleware))
-			self::_runBeforeMiddleware(self::$_globalMiddleware);
+			$res = self::_runBeforeMiddleware(self::$_globalMiddleware, $res);
 
 		$noMiddleware = $handler === null;
 
 		if ($noMiddleware)
 			$handler = $middleware;
 		else
-			self::_runBeforeMiddleware($middleware);
+			$res = self::_runBeforeMiddleware($middleware, $res);
 
 		if (!is_callable($handler))
 			throw new InvalidArgumentException(
 				'Only functions can be passed as route handlers');
 
-		$res = call_user_func(
-			$handler,
-			Request::getInstance(),
-			new Response()
-		);
+		$res = $handler(Request::getInstance(), $res);
 		if (!$res instanceof Response)
 			throw new RuntimeException(
 				'Route handlers must return a Response object');
@@ -142,7 +146,7 @@ class Router {
 			$res = self::_runAfterMiddleware(self::$_globalMiddleware, $res);
 
 		$res->send();
-		exit;
+		exit(0);
 	}
 
 	public static function get(string $r, $m, $h = null) {
@@ -177,17 +181,13 @@ class Router {
 	// API prefix
 	// NOTE: must be called after all the routes are set up.
 	public static function default(callable $handler) {
-		$res = call_user_func(
-			$handler,
-			Request::getInstance(),
-			new Response()
-		);
+		$res = $handler(Request::getInstance(), new Response());
 		if (!$res instanceof Response)
 			throw new RuntimeException(
 				'Route handlers must return a Response object');
 
 		$res->send();
-		exit;
+		exit(0);
 	}
 
 }

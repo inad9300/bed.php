@@ -27,7 +27,8 @@ class Url {
 
 		$this->_full = parse_url($this->_fullString);
 		if ($this->_full === false)
-			throw new InvalidArgumentException('Malformed URL');
+			throw new InvalidArgumentException(
+				'Malformed URL: ' . $this->_fullString);
 	}
 
 	public function getFull(): string {
@@ -75,10 +76,12 @@ class Url {
 		return $this->_full['query'];
 	}
 
+	// FIXME: do not work if a URL is provided as a string
 	public function getParam(string $key): string {
 		return $_GET[$key] ?? '';
 	}
 
+	// FIXME: same as for getParam()
 	public function getParams(): array {
 		return $_GET;
 	}
@@ -101,10 +104,6 @@ class Url {
 
 	public function getPass(): string {
 		return $this->_full['pass'];
-	}
-
-	public function __toString(): string {
-		return $this->_fullString;
 	}
 
 }

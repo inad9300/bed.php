@@ -33,7 +33,12 @@ class MultipartRelatedRequest {
 
 	public function __construct(string $payload, string $boundary) {
 		$parts = preg_split("/-+$boundary/", $payload);
-		array_pop($parts); // Get rid of last "--"
+		
+		// Get rid of last "--"
+		array_pop($parts);
+		
+		// Get rid of original headers
+		array_shift($parts);
 
 		foreach ($parts as $part) {
 			$part = trim($part);
@@ -45,8 +50,12 @@ class MultipartRelatedRequest {
 		}
 	}
 
-	public function getChunks(int $n = null) {
-		return $n === null ? $this->_chunks : $this->_chunks[$n];
+	public function getChunk(int $n) {
+		return $this->_chunks[$n] ?? null;
+	}
+
+	public function getChunks() {
+		return $this->_chunks;
 	}
 
 }

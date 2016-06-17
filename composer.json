@@ -7,5 +7,8 @@
 	"license": "GNU AGPL",
 	"require": {
 		"php": "^7.0"
-	}
+	},
+	"require-dev": {
+        "phpunit/phpunit": "5.4.*"
+    }
 }

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# PHPUnit convenient wrapper
+
+clear
+
+PHPUNIT=../vendor/phpunit/phpunit/phpunit
+
+# Run all by default
+if [ "$#" -eq 0 ]; then
+    $PHPUNIT .
+# Otherwise, give all the power to the phpunit command
+else
+	$PHPUNIT $@
+fi

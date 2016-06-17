@@ -86,7 +86,7 @@ class Response {
 			throw new RuntimeException('Error encoding data into JSON');
 
 		echo $res;
-		exit;
+		exit(0);
 	}
 
 }
