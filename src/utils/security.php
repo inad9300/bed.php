@@ -1,6 +1,6 @@
 <?php
 
-namespace Utils\Security;
+namespace utils\security;
 
 // Source: https://alias.io/2010/01/store-passwords-safely-with-php-and-mysql
 // NOTE: requires PHP's Mcrypt extension (http://php.net/manual/es/book.mcrypt.php)

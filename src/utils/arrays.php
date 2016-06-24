@@ -1,6 +1,6 @@
 <?php
 
-namespace Utils\Arrays;
+namespace utils\arrays;
 
 function isAssoc(array $arr): bool {
 	return is_array($arr)

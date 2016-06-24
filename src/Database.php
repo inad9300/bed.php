@@ -8,6 +8,7 @@ class Database {
 	private static $_dbh;
 	private static $_config;
 	private static $_pdoOptions;
+	private static $_lastStmt;
 
 	/**
 	 * Wrapper function to centralize all the database configuration.
@@ -24,7 +25,8 @@ class Database {
 	}
 
 	/**
-	 * Obtain the instance representing the database connection.
+	 * Obtain the instance representing the database connection (aka database
+	 * handler).
 	 */
 	public static function get(): PDO {
 		// Establish the connection only if the database instance is requested,
@@ -47,38 +49,71 @@ class Database {
 	}
 
 	/**
+	 * Return the last statement prepared / executed.
+	 */
+	public static function getStatement() {
+		return self::$_lastStmt;
+	}
+
+	/**
 	 * Simple wrapper, for simple queries. The goal is to cover most of the
 	 * cases, while keeping the code small.
 	 *
 	 * Specifically, there is no good support for LOBs: the only operation
 	 * permitted is insertion, and only when the given argument is of type
 	 * 'resource'. More information in http://php.net/manual/en/pdo.lobs.php
-	 *
-	 * TODO: adapt to complex queries, supporting (at least):
-	 * - Binary columns
-	 * - Auto selection (casting) of PDO types, both when writing and reading
-	 * - Arrays of arrays as $params, to take advantage of prepared statements
-	 * - Transactions
 	 */
-	public static function run(string $q, array $params = []) {
+	public static function run(
+		string $q,
+		array $params = [], 
+		array $paramTypes = [] // PDO types, overriding auto-detection
+		// array $colTypes = [] // For SELECT statements, may be different
+	) {
 		$stmt = self::get()->prepare($q);
+		self::$_lastStmt = $stmt;
+
+		$isSelect = self::_isSelect($q);
+		$manyParams = count($params) > 0 
+					? is_array($params[0]) && !Utils\Arrays\isAssoc($params[0])
+					: false;
+
+		if ($manyParams) {
+			$results = [];
+			foreach ($params as $args) {
+				foreach ($args as $i => $arg)
+					$stmt->bindParam(
+						$i,
+						$arg,
+						$paramTypes[$i] ?? self::_pdoType($arg)
+					);
+				
+				$stmt->execute();
+				$results[] = $isSelect
+							? $stmt->fetchAll() 
+							: $stmt->rowCount();
+			}
+			return $results;
+		}
 
 		foreach ($params as $i => $param)
 			$stmt->bindParam(
 				$i,
 				$param,
-				self::_pdoType(gettype($param))
+				$paramTypes[$i] ?? self::_pdoType($param)
 			);
 
 		$stmt->execute();
-
-		if (self::_isSelect($q))
-			return $stmt->fetchAll();
-
-		return $stmt->rowCount();
+		return $isSelect 
+			? $stmt->fetchAll() 
+			: $this->rowCount();
 	}
 
-	private static function _pdoType(string $phpType): int {
+	// Max. number of bytes a MySQL row may hold
+	const _MYSQL_MAX_SIZE = 65535; 
+
+	private static function _pdoType($thing): int {
+		$phpType = gettype($thing);
+
 		switch ($phpType) {
 		case 'integer':
 			return PDO::PARAM_INT;
@@ -88,6 +123,13 @@ class Database {
 			return PDO::PARAM_LOB;
 		case 'NULL':
 			return PDO::PARAM_NULL;
+		case 'string':
+			// If a large string is given, assume a BLOB. For that, the maximum
+			// number of bytes MySQL can hold in a row is taken as reference
+			if (strlen($thing) > self::_MYSQL_MAX_SIZE)
+				return PDO::PARAM_LOB;
+
+			return PDO::PARAM_STR;
 		}
 		return PDO::PARAM_STR;
 	}

@@ -56,7 +56,7 @@ abstract class HttpStatus {
 	const UnsupportedMediaType = 415;
 	const RangeNotSatisfiable = 416;
 	const ExpectationFailed = 417;
-	const IMateapot = 418; // Joke
+	const Imateapot = 418; // Joke
 	const AuthenticationTimeout = 419;
 	const MisdirectedRequest = 421;
 	const UnprocessableEntity = 422;

@@ -1,7 +1,6 @@
 <?php
 
-// TODO: re-think the interceptor concept
-// IDEA: pass *::class as middleware, as oppose to class instances
+// IDEA: control rate limit (via APC)
 
 require_once 'Request.php';
 require_once 'RequestInterceptor.php';
