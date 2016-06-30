@@ -40,5 +40,5 @@ class Validator {
 	public function isValid() {
 		return empty($this->_lastErrors);
 	}
-
 }
+

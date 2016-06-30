@@ -1,6 +1,7 @@
 <?php
 
-// IDEA: control rate limit (via APC)
+// IDEA: public function to return the value for the current end-points.
+// IDEA: public function to return the current end-point ("normalized")
 
 require_once 'Request.php';
 require_once 'RequestInterceptor.php';
@@ -188,5 +189,5 @@ class Router {
 		$res->send();
 		exit(0);
 	}
-
 }
+
