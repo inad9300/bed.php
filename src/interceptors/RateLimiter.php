@@ -1,7 +1,5 @@
 <?php
 
-// FIXME: build as interceptor / middleware, so that the headers can be
-// attached to all requests, and not only if the time window has passed
 // TODO: support auth*
 // TODO: make it work for specific end-points - remember to support 
 // placeholders

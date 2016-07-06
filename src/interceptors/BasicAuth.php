@@ -3,7 +3,7 @@
 require_once '../utils/security.php';
 require_once '../RequestInterceptor.php';
 
-class Auth implements RequestInterceptor {
+class BasicAuth implements RequestInterceptor {
 
 	const USERS_SIGN_UP_PATH = '/users';
 
