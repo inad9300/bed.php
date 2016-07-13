@@ -31,5 +31,5 @@ class Env {
 	public static function isProd(): bool {
 		return self::$_current === self::PROD;
 	}
-
 }
+

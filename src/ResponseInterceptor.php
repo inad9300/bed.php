@@ -9,3 +9,4 @@ require_once 'Interceptor.php';
  * CORS support.
  */
 interface ResponseInterceptor extends Interceptor {}
+

@@ -3,14 +3,90 @@
 require_once '../utils/security.php';
 require_once '../RequestInterceptor.php';
 
+/**
+ * Extend this class to define a way to authenticate (retrieve and validate) a
+ * user.
+ */
+abstract class AuthStrategy {
+	protected $username;
+	protected $password;
+
+	private $_user;
+
+	public function __construct() {}
+
+	public function setCredentials(string $name, string $pass) {
+		$this->username = $name;
+		$this->password = $pass;
+	}
+
+	/**
+	 * Wrapper for the _isValid() function, hiding the always-needed call to
+	 * getUser().
+	 */
+	public function isValid(): bool {
+		return $this->_isValid($this->getUser());
+	}
+
+	/**
+	 * Wrapper to the _getUser() function, adding a cache layer.
+	 */
+	public function getUser(): array {
+		if (empty($this->_user))
+			$this->_user = $this->getUser();
+
+		return $this->_user;
+	}
+
+	private abstract function _getUser(): array;
+
+	private abstract function _isValid(array $user): bool;
+}
+
+/**
+ * Example of AuthStrategy implementation, based on a common setup using a
+ * MySQL database.
+ */
+class ExampleMysqlAuthStrategy extends AuthStrategy {
+	private function _getUser(): array {
+		$users = Database::run(
+			'SELECT id, email, password FROM users WHERE username = ?',
+			[ $this->username ]
+		);
+
+		if (count($users) === 0) {
+			$res->setStatus(HttpStatus::Unauthorized);
+			$res->setPayload([
+				'title' => 'User not found',
+				'detail' => 'There username provided for authentication does not match any of those stored'
+			]);
+			$res->send();
+		}
+
+		$user = $users[0];
+		$user['id'] = (int) $user['id'];
+		$user['username'] = $this->username;
+
+		return $user;
+	}
+
+	private function _isValid(array $user): bool {
+		// NOTE: the checking must conform the user registration process
+		return !\utils\security\verify($this->password, $user['password']);
+	}
+}
+
+/**
+ * Basic authentication support as an interceptor.
+ */
 class BasicAuth implements RequestInterceptor {
 
 	const USERS_SIGN_UP_PATH = '/users';
 
-	private static $_user;
+	private static $_authStrategy;
 
-	public static function user(): array {
-		return self::$_user;
+	public static function setAuthStrategy(AuthStrategy s) {
+		self::$_authStrategy = s;
 	}
 
 	public function handle(Request $req, Response $res): Response {
@@ -30,25 +106,12 @@ class BasicAuth implements RequestInterceptor {
 		$username = $_SERVER['PHP_AUTH_USER'];
 		$password = $_SERVER['PHP_AUTH_PW'];
 
-		$users = Database::run(
-			'SELECT id, email, password FROM users WHERE username = ?',
-			[ $username ]
-		);
+		if (empty(self::$_authStrategy))
+			throw new InvalidArgumentException('An authentication strategy must be provided in order to identify the users in the system');
 
-		if (count($users) === 0) {
-			$res->setStatus(HttpStatus::Unauthorized);
-			$res->setPayload([
-				'title' => 'User not found',
-				'detail' => 'There username provided for authentication does not match any of those stored'
-			]);
-			$res->send();
-		}
+		self::$_authStrategy->setCredentials($username, $password);
 
-		self::$_user = $users[0];
-		self::$_user['username'] = $username;
-		self::$_user['id'] = (int) self::$_user['id'];
-
-		if (!utils\security\verify($password, self::$_user['password'])) {
+		if (!self::$_authStrategy->isValid()) {
 			$res->setStatus(HttpStatus::Unauthorized);
 			$res->setPayload([
 				'title' => 'Wrong password',

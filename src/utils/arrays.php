@@ -15,3 +15,4 @@ function pluck(array $arr, string $prop): array {
 
 	return $result;
 }
+

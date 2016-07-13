@@ -16,5 +16,5 @@ class FileRequest extends MultipartRelatedRequest {
 	public function getContent() {
 		return $this->getChunk(1);
 	}
-
 }
+

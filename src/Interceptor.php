@@ -9,3 +9,4 @@ require_once 'Response.php';
 interface Interceptor {
 	public function handle(Request $req, Response $res): Response;
 }
+

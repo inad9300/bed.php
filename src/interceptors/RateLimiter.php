@@ -1,37 +1,60 @@
 <?php
 
-// TODO: support auth*
-// TODO: make it work for specific end-points - remember to support 
-// placeholders
-// IDEA: configuration option to decide if the limit is based on IP or on the
-// authenticated user
-
-require_once 'Response.php';
-require_once 'HttpStatus.php';
+require_once '../Response.php';
+require_once '../HttpStatus.php';
 require_once '../RequestInterceptor.php';
+require_once '../Router.php';
+
+/**
+ * Implement this interface to define a way to identify the clients to base
+ * the rate limiter on.
+ */
+interface RateLimitStrategy {
+	public function getClientUniqueId();
+}
+
+/**
+ * Identifies the client by the IP used by it.
+ */
+class RateLimitIp implements RateLimitStrategy {
+	public function getClientId() {
+		if (!isset($_SERVER['REMOTE_ADDR']))
+			throw new RuntimeException('A request has been received without a source IP address');
+		
+		return $_SERVER['REMOTE_ADDR'];
+	}
+}
 
 /**
  * Way to determine how many requests a certain client (IP) may perform in one
  * minute.
  */
-class RateLimiter implements RequestInterceptor {
-
-	const BASE_KEY = '_rate_limit';
-	const TIME_SUFF = '_time';
-	const TIMES_SUFF = '_times';
+class RateLimit implements RequestInterceptor {
+	const TIME_SUFF = '_rate_limit_time';
+	const TIMES_SUFF = '_rate_limit_times';
 
 	const RATE_LIMIT = 60;
 	const WINDOW = 60; // In seconds
 
-	// private static $_scope;
 	private static $_timeKey;
 	private static $_timesKey;
-	private static $_clientIp;
+	private static $_clientId;
+	private static $_endPoint;
+	private static $_idGenerator;
+
+	public static function setStrategy(RateLimitStrategy s) {
+		self::$_idGenerator = s;
+	}
 
 	public function handle(Request $req, Response $res): Response {
-		self::$_clientIp = self::getClientIp();
+		// Default client identification by IP
+		if (empty(self::$_idGenerator))
+			self::$_idGenerator = new RateLimitIp();
 
-		$keyPrefix = $scope . self::BASE_KEY . self::$_clientIp;
+		self::$_endPoint = Router::current();
+		self::$_clientId = self::$_idGenerator->getClientId();
+
+		$keyPrefix = self::$_clientId . '@' . self::$_endPoint;
 		self::$_timeKey = $keyPrefix . self::TIME_SUFF;
 		self::$_timesKey = $keyPrefix . self::TIMES_SUFF;
 
@@ -78,13 +101,6 @@ class RateLimiter implements RequestInterceptor {
 		$res->addHeader('Retry-After', time() - $time); // Should be 0 any time there are remaining requests
 
 		return $res;
-	}
-
-	public static function getClientIp(): string {
-		if (!isset($_SERVER['REMOTE_ADDR']))
-			throw new RuntimeException('A request has been received without a source IP address');
-		
-		return $_SERVER['REMOTE_ADDR'];
 	}
 }
 

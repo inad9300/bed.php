@@ -105,5 +105,5 @@ class Url {
 	public function getPass(): string {
 		return $this->_full['pass'];
 	}
-
 }
+

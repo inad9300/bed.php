@@ -80,5 +80,5 @@ abstract class HttpStatus {
 	const LoopDetected = 508;
 	const NotExtended = 510;
 	const NetworkAuthenticationRequired = 511;
-
 }
+

@@ -57,7 +57,6 @@ class MultipartRelatedRequest {
 	public function getChunks() {
 		return $this->_chunks;
 	}
-
 }
 
 /**
@@ -104,5 +103,5 @@ class __MultipartRelatedChunk__ {
 	public function getPayload() {
 		return $this->_payload;
 	}
-
 }
+

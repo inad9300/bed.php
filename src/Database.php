@@ -144,5 +144,5 @@ class Database {
 			)
 		);
 	}
-
 }
+

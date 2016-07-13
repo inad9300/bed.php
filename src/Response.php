@@ -88,5 +88,5 @@ class Response {
 		echo $res;
 		exit(0);
 	}
-
 }
+

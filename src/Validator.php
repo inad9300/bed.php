@@ -4,7 +4,7 @@
 // default values (already in database)...
 
 /**
- *
+ * Generic, simple class for data validation.
  */
 class Validator {
 

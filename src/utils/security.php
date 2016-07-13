@@ -24,3 +24,4 @@ function verify(string $plain, string $hash): bool {
 	// Hashing the password with its hash as the salt returns the same hash
 	return hash_equals($hash, crypt($plain, $hash));
 }
+

@@ -29,7 +29,9 @@ class Request {
 			?: $_SERVER['REQUEST_METHOD'];
 	}
 
-	// Get the full URL
+	/**
+	 * Get the full URL.
+	 */
 	public function getUrl(): Url {
 		if (self::$_url === null)
 			self::$_url = new Url();
@@ -81,5 +83,5 @@ class Request {
 		}
 		return self::$_payload;
 	}
-
 }
+

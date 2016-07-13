@@ -95,3 +95,4 @@ set_error_handler(function (
 
 	(new Response(HttpStatus::InternalServerError, [], $data))->send();
 });
+
