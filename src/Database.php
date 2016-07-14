@@ -1,5 +1,7 @@
 <?php
 
+require_once 'utils/arrays.php';
+
 /**
  * Database abstraction.
  */
@@ -49,7 +51,7 @@ class Database {
 	}
 
 	/**
-	 * Return the last statement prepared / executed.
+	 * Return the last prepared/executed statement.
 	 */
 	public static function getStatement() {
 		return self::$_lastStmt;
@@ -59,24 +61,24 @@ class Database {
 	 * Simple wrapper, for simple queries. The goal is to cover most of the
 	 * cases, while keeping the code small.
 	 *
-	 * Specifically, there is no good support for LOBs: the only operation
-	 * permitted is insertion, and only when the given argument is of type
-	 * 'resource'. More information in http://php.net/manual/en/pdo.lobs.php
+	 * Specifically, there is no good support for selecting LOBs.
+	 * More information in http://php.net/manual/en/pdo.lobs.php
 	 */
 	public static function run(
 		string $q,
 		array $params = [], 
-		array $paramTypes = [] // PDO types, overriding auto-detection
-		// array $colTypes = [] // For SELECT statements, may be different
+		array $paramTypes = [], // PDO types, overriding auto-detection
+		array $colTypes = [] // For SELECT statements, may be different
 	) {
 		$stmt = self::get()->prepare($q);
 		self::$_lastStmt = $stmt;
 
 		$isSelect = self::_isSelect($q);
 		$manyParams = count($params) > 0 
-					? is_array($params[0]) && !Utils\Arrays\isAssoc($params[0])
+					? is_array($params[0]) && !\utils\arrays\isAssoc($params[0])
 					: false;
 
+		// TODO: redo according to the changes done in the single-array case
 		if ($manyParams) {
 			$results = [];
 			foreach ($params as $args) {
@@ -103,6 +105,31 @@ class Database {
 			);
 
 		$stmt->execute();
+
+		$data = [];
+		$specialSelect = false;
+
+		// TODO: test...
+		if ($isSelect && !empty($colTypes)) {
+			$specialSelect = true;
+
+			foreach ($params as $i => $param) {
+				$colName = $stmt->getColumnMeta($i);
+
+				$stmt->bindColumn(
+					$i,
+					$data[$colName],
+					$colTypes[$i] ?? PDO::PARAM_STR
+				);
+			}
+		}
+
+		// TODO: test...
+		if ($specialSelect) {
+			$stmt->fetchAll(PDO::FETCH_BOUND);
+			return $data;
+		}
+
 		return $isSelect 
 			? $stmt->fetchAll() 
 			: $this->rowCount();
