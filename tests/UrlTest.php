@@ -14,7 +14,7 @@ class UrlTest extends PHPUnit\Framework\TestCase {
 		// understands that term
 	}
 
-	const TEST_URL = 'https://user:pass@www.google.com:80/some_path?some=query#some_fragment';
+	const TEST_URL = 'https://user:pass@www.google.com:80/some_path?some=query&something=%20weird#some_fragment';
 
 	function testUrl() {
 		$url = new Url(self::TEST_URL);
@@ -23,9 +23,18 @@ class UrlTest extends PHPUnit\Framework\TestCase {
 		$this->assertEquals($url->getHost(), 'www.google.com');
 		$this->assertEquals($url->getPort(), '80');
 		$this->assertEquals($url->getPath(), '/some_path');
-		$this->assertEquals($url->getQuery(), 'some=query');
-		// $this->assertEquals($url->getParam('some'), 'query');
-		// $this->assertEquals($url->getParams(), ['some' => 'query']);
+
+		// The HTML entities remain intact
+		$this->assertEquals($url->getQuery(), 'some=query&something=%20weird');
+
+		// The HTML entities are resolved
+		$this->assertEquals($url->getParam('some'), 'query');
+		$this->assertEquals($url->getParam('something'), ' weird');
+		$this->assertEquals($url->getParams(), [
+			'some' => 'query', 
+			'something' => ' weird'
+		]);
+
 		$this->assertEquals($url->getFragment(), 'some_fragment');
 		$this->assertEquals($url->getUser(), 'user');
 		$this->assertEquals($url->getPass(), 'pass');

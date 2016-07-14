@@ -13,6 +13,7 @@ class Url {
 	private $_full;
 	private $_fullString;
 	private $_pathChunks;
+	private $_GET; // Analogous to the global $_GET variable
 
 	/**
 	 * Accept a URL, using the current one by default.
@@ -76,14 +77,15 @@ class Url {
 		return $this->_full['query'];
 	}
 
-	// FIXME: do not work if a URL is provided as a string
 	public function getParam(string $key): string {
-		return $_GET[$key] ?? '';
+		return $this->getParams()[$key] ?? '';
 	}
 
-	// FIXME: same as for getParam()
 	public function getParams(): array {
-		return $_GET;
+		if ($this->_GET === null)
+			parse_str($this->getQuery(), $this->_GET);
+
+		return $this->_GET;
 	}
 
 	public function getFragment(): string {
