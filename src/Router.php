@@ -78,8 +78,11 @@ class Router {
 	 * Return a particular path argument by its name.
 	 */
 	public static function arg(string $key): string {
-		return self::$_args[$key] 
-			?? throw new InvalidArgumentException('The required argument does not match with any defined route placeholder');
+		$arg = self::$_args[$key];
+		if ($arg === null)
+			throw new InvalidArgumentException('The required argument does not match with any defined route placeholder');
+
+		return $arg;
 	}
 
 	/**

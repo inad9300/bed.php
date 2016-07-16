@@ -1,8 +1,5 @@
 <?php
 
-// IDEA: define some kind of model, with a cast associated to attributes,
-// default values (already in database)...
-
 /**
  * Generic, simple class for data validation.
  */
@@ -11,34 +8,33 @@ class Validator {
 	// Map from attributes (strings) to validators (functions)
 	private $_rules;
 
-	private $_lastErrors;
+	private $_errors;
 
 	public function __construct(array $rules) {
 		$this->_rules = $rules;
 	}
 
 	public function validate(array $data, array $attrs = null): self {
-		$errors = [];
+		$this->_errors = [];
 
 		foreach ($this->_rules as $attr => $func) {
 			if ($attrs !== null && !in_array($attr, $attrs))
 				continue;
 
-			$result = call_user_func($func, $data[$attr]);
-			if ($result)
-				$errors[$attr] = is_array($result) ? $result : [$result];
+			$res = call_user_func($func, $data[$attr]);
+			if ($res)
+				$this->_errors[$attr] = is_array($res) ? $res : [$res];
 		}
 
-		$this->_lastErrors = $errors;
 		return $this;
 	}
 
 	public function errors(): array {
-		return $this->_lastErrors;
+		return $this->_errors;
 	}
 
-	public function isValid() {
-		return empty($this->_lastErrors);
+	public function isValid(): bool {
+		return empty($this->_errors);
 	}
 }
 

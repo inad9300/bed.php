@@ -3,6 +3,67 @@
 require_once 'utils/arrays.php';
 
 /**
+ * The purpose of this class is to hold the different tyeps the columns can
+ * take, as an equivalent alternative to PDO predefined constants
+ * (http://php.net/manual/en/pdo.constants.php). This alternative is needed
+ * in order to be able to mix in the same array regular elements and
+ * associative elements, unambiguosly. Thus, the values of the types are given
+ * as a string, as oppose to PDO constants, which are integers; and they change
+ * each time they are accessed, so next time a different key is used
+ *
+ * In summary, this allows for a concise syntax when referring to parameters
+ * in queries: [ 'x', 'y', Col::INT() => 2, Col::BOOL() => true, 'z' ]
+ */
+class Col {
+	// The values are intentionally kept as one-length strings
+	private static $_INT = 'i';
+	private static $_STR = 's';
+	private static $_LOB = 'l';
+	private static $_BOOL = 'b';
+	private static $_NULL = 'n';
+
+	private static $_count = 0;
+
+	public static function INT(): string {
+		return self::_yieldNewKey(self::$_INT);
+	}
+
+	public static function STR(): string {
+		return self::_yieldNewKey(self::$_STR);
+	}
+
+	public static function LOB(): string {
+		return self::_yieldNewKey(self::$_LOB);
+	}
+
+	public static function BOOL(): string {
+		return self::_yieldNewKey(self::$_BOOL);
+	}
+
+	public static function NULL(): string {
+		return self::_yieldNewKey(self::$_NULL);
+	}
+
+	private static function _yieldNewKey(string $prefix): string {
+		return $prefix . self::$_count++;
+	}
+
+	public static function getPdoType(string $colType): int {
+		$realType = substr($colType, 0, 1);
+
+		switch ($realType) {
+		case self::$_INT: return PDO::PARAM_INT;
+		case self::$_STR: return PDO::PARAM_STR;
+		case self::$_LOB: return PDO::PARAM_LOB;
+		case self::$_BOOL: return PDO::PARAM_BOOL;
+		case self::$_NULL: return PDO::PARAM_NULL;
+		default:
+			throw new InvalidArgumentException('Wrong constant used as column type');
+		}
+	}
+}
+
+/**
  * Database abstraction.
  */
 class Database {
@@ -58,73 +119,64 @@ class Database {
 	}
 
 	/**
-	 * Simple wrapper, for simple queries. The goal is to cover most of the
-	 * cases, while keeping the code small.
+	 * Simple wrapper for running database queries.
 	 *
-	 * Specifically, there is no good support for selecting LOBs.
-	 * More information in http://php.net/manual/en/pdo.lobs.php
+	 * @param $params List of parameter values. Optionally, an associative
+	 * element can be provided, whose key would indicate the type (given as
+	 * a Col function), and whose value would be the actual value of the
+	 * parameter, overriding the auto-detection. Alternatively, an array of 
+	 * arrays can be passed, resulting in the query being executed one time
+	 * per item (which are arrays with the conditions earlier explained).
+	 * @param $colTypes List of types in the form of a Col function, which may 
+	 * be needed for SELECT statements.
 	 */
 	public static function run(
 		string $q,
-		array $params = [], 
-		array $paramTypes = [], // PDO types, overriding auto-detection
-		array $colTypes = [] // For SELECT statements, may be different
+		array $params = [],
+		array $colTypes = []
 	) {
 		$stmt = self::get()->prepare($q);
 		self::$_lastStmt = $stmt;
 
 		$isSelect = self::_isSelect($q);
+		if (!$isSelect && !empty($colTypes))
+			throw new InvalidArgumentException('There is no point on providing column types in non-SELECT statements');
+
 		$manyParams = count($params) > 0 
-					? is_array($params[0]) && !\utils\arrays\isAssoc($params[0])
+					? isset($params[0]) && is_array($params[0]) && !utils\arrays\isAssoc($params[0])
 					: false;
 
-		// TODO: redo according to the changes done in the single-array case
 		if ($manyParams) {
-			$results = [];
-			foreach ($params as $args) {
-				foreach ($args as $i => $arg)
-					$stmt->bindParam(
-						$i,
-						$arg,
-						$paramTypes[$i] ?? self::_pdoType($arg)
-					);
-				
-				$stmt->execute();
-				$results[] = $isSelect
-							? $stmt->fetchAll() 
-							: $stmt->rowCount();
-			}
-			return $results;
+			// TODO: redo according to the single-array case
 		}
 
-		foreach ($params as $i => $param)
-			$stmt->bindParam(
-				$i,
-				$param,
-				$paramTypes[$i] ?? self::_pdoType($param)
-			);
+		$i = 1;
+		foreach ($params as $key => $param) {
+			$type = is_string($key) 
+				? Col::getPdoType($key)
+				: self::_pdoType($param);
+
+			$stmt->bindParam($i++, $param, $type);
+		}
 
 		$stmt->execute();
 
 		$data = [];
 		$specialSelect = false;
 
-		// TODO: test...
 		if ($isSelect && !empty($colTypes)) {
 			$specialSelect = true;
 
-			foreach ($params as $i => $param) {
-				$colName = $stmt->getColumnMeta($i);
+			for ($i = 0, $l = count($colTypes); $i < $l; $i++) {
+				$col = $stmt->getColumnMeta($i);
+				$type = $colTypes[$i]
+					? Col::getPdoType($colTypes[$i])
+					: ($col['pdo_type'] ?: PDO::PARAM_STR);
 
-				$stmt->bindColumn(
-					$i,
-					$data[$colName],
-					$colTypes[$i] ?? PDO::PARAM_STR
-				);
+				$stmt->bindColumn($i + 1, $data[$col['name']], $type);
 			}
 		}
 
-		// TODO: test...
 		if ($specialSelect) {
 			$stmt->fetchAll(PDO::FETCH_BOUND);
 			return $data;
@@ -157,8 +209,9 @@ class Database {
 				return PDO::PARAM_LOB;
 
 			return PDO::PARAM_STR;
+		default:
+			return PDO::PARAM_STR;
 		}
-		return PDO::PARAM_STR;
 	}
 
 	// Default trim()'s mask plus left parentheses
