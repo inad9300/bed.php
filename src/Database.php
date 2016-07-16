@@ -3,7 +3,7 @@
 require_once 'utils/arrays.php';
 
 /**
- * The purpose of this class is to hold the different tyeps the columns can
+ * The purpose of this class is to hold the different types the columns can
  * take, as an equivalent alternative to PDO predefined constants
  * (http://php.net/manual/en/pdo.constants.php). This alternative is needed
  * in order to be able to mix in the same array regular elements and
@@ -194,14 +194,10 @@ class Database {
 		$phpType = gettype($thing);
 
 		switch ($phpType) {
-		case 'integer':
-			return PDO::PARAM_INT;
-		case 'boolean':
-			return PDO::PARAM_BOOL;
-		case 'resource':
-			return PDO::PARAM_LOB;
-		case 'NULL':
-			return PDO::PARAM_NULL;
+		case 'integer': return PDO::PARAM_INT;
+		case 'boolean': return PDO::PARAM_BOOL;
+		case 'resource': return PDO::PARAM_LOB;
+		case 'NULL': return PDO::PARAM_NULL;
 		case 'string':
 			// If a large string is given, assume a BLOB. For that, the maximum
 			// number of bytes MySQL can hold in a row is taken as reference
