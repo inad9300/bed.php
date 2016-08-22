@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 require_once 'Url.php';
 require_once 'FileRequest.php';
 
@@ -7,21 +9,17 @@ require_once 'FileRequest.php';
  * Representation of an HTTP request. Think of it as a simple way of accessing
  * the different parts of an HTTP message, in this order: the HTTP method, the
  * target URL, the HTTP version, the headers and the payload (body).
- *
- * It is implemented applying the Singleton pattern.
  */
 class Request {
 
-	private static $_instance;
-	private static $_headers;
-	private static $_url;
-	private static $_payload;
+	protected $headers;
+	protected $url;
+	protected $payload;
 
-	public static function getInstance(): Request {
-		if (self::$_instance === null)
-			self::$_instance = new self();
+	protected static $instance = new self;
 
-		return self::$_instance;
+	public static function getInstance(): self {
+		return self::$instance;
 	}
 
 	public function getMethod(): string {
@@ -33,10 +31,10 @@ class Request {
 	 * Get the full URL.
 	 */
 	public function getUrl(): Url {
-		if (self::$_url === null)
-			self::$_url = new Url();
+		if ($this->$url === null)
+			$this->$url = new Url;
 
-		return self::$_url;
+		return $this->$url;
 	}
 
 	public function getHttpVersion(): string {
@@ -44,22 +42,22 @@ class Request {
 	}
 
 	public function getHeaders(): array {
-		if (self::$_headers === null)
-			self::$_headers = getallheaders();
+		if ($this->$headers === null)
+			$this->$headers = getallheaders();
 
-		return self::$_headers;
+		return $this->$headers;
 	}
 
-	public function getHeader(string $key) {
+	public function getHeader(string $key): string {
 		if (array_key_exists($key, $this->getHeaders()))
 			return $this->getHeaders()[$key];
 
 		return null;
 	}
 
-	public function getPayload() {
-		if (self::$_payload === null) {
-			self::$_payload = file_get_contents('php://input');
+	public function getBody() {
+		if ($this->$payload === null) {
+			$this->$payload = file_get_contents('php://input');
 
 			// Separate actual content type from its meta-data
 			list($contentType, $contentTypeMeta)
@@ -67,21 +65,20 @@ class Request {
 
 			switch ($contentType) {
 			case 'application/json':
-				self::$_payload = json_decode(self::$_payload, true);
+				$this->$payload = json_decode($this->$payload, true);
 				break;
 			case 'text/xml':
 			case 'application/xml':
-				self::$_payload = new SimpleXMLElement(self::$_payload);
+				$this->$payload = new SimpleXMLElement($this->$payload);
 				break;
 			case 'multipart/related':
 				$boundary = substr(
 					trim($contentTypeMeta), strlen('boundary=')
 				);
-				self::$_payload = new FileRequest(self::$_payload, $boundary);
+				$this->$payload = new FileRequest($this->$payload, $boundary);
 				break;
 			}
 		}
-		return self::$_payload;
+		return $this->$payload;
 	}
 }
-

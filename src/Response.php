@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 require_once 'Env.php';
 
 /**
@@ -9,71 +11,85 @@ require_once 'Env.php';
  */
 class Response {
 
-	private $_status;
-	private $_headers;
-	private $_payload;
+	protected $status;
+	protected $headers;
+	protected $payload;
 
 	public function __construct(
 		int $status = 200,
 		array $headers = [],
 		$payload = null
 	) {
-		$this->_status = $status;
-		$this->_headers = $headers;
-		$this->_payload = $payload;
+		$this->status = $status;
+		$this->headers = $headers;
+		$this->payload = $payload;
+	}
+
+	// A concise way to override all the members if the Response object was
+	// already instantiated. The functionality is equal to that of the
+	// constructor
+	public function build(
+		int $status = 200,
+		array $headers = [],
+		$payload = null
+	): Response {
+		$this->status = $status;
+		$this->headers = $headers;
+		$this->payload = $payload;
+		return this;
 	}
 
 	public function setStatus(int $status) {
-		$this->_status = $status;
+		$this->status = $status;
 		return $this;
 	}
 
 	public function getStatus(): int {
-		return $this->_status;
+		return $this->status;
 	}
 
 	public function setHeaders(array $headers) {
-		$this->_headers = $headers;
+		$this->headers = $headers;
 		return $this;
 	}
 
 	public function getHeaders(): array {
-		return $this->_headers;
+		return $this->headers;
 	}
 
 	public function addHeaders(array $headers) {
 		foreach ($headers as $key => $value)
-			$this->_headers[$key] = $value;
+			$this->headers[$key] = $value;
 
 		return $this;
 	}
 
 	public function addHeader(string $key, string $value) {
-		$this->_headers[$key] = $value;
+		$this->headers[$key] = $value;
 		return $this;
 	}
 
-	public function setPayload($payload) {
-		$this->_payload = $payload;
+	public function setBody($payload) {
+		$this->payload = $payload;
 		return $this;
 	}
 
-	public function getPayload() {
-		return $this->_payload;
+	public function getBody() {
+		return $this->payload;
 	}
 
 	public function send() {
 		// Send status
-		$res = http_response_code($this->_status);
+		$res = http_response_code($this->status);
 		if ($res === false)
-			throw new RuntimeException('HTTP status could not be send');
+			throw new \RuntimeException('HTTP status could not be send');
 
 		// Add default Content-Type header
-		if (!array_key_exists('Content-Type', $this->_headers))
-			$this->_headers['Content-Type'] = 'application/json';
+		if (!array_key_exists('Content-Type', $this->headers))
+			$this->headers['Content-Type'] = 'application/json';
 
 		// Send headers
-		foreach ($this->_headers as $key => $value)
+		foreach ($this->headers as $key => $value)
 			header($key . ':' . $value);
 
 		// Send payload, encoding everything as JSON
@@ -81,12 +97,11 @@ class Response {
 		if (!Env::isProd())
 			$mask |= JSON_PRETTY_PRINT;
 
-		$res = json_encode($this->_payload ?? '', $mask);
+		$res = json_encode($this->payload ?? '', $mask);
 		if ($res === false)
-			throw new RuntimeException('Error encoding data into JSON');
+			throw new \RuntimeException('Error encoding data into JSON');
 
 		echo $res;
 		exit(0);
 	}
 }
-

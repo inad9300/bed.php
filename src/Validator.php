@@ -1,40 +1,45 @@
 <?php
 
+namespace bed;
+
 /**
  * Generic, simple class for data validation.
  */
 class Validator {
 
-	// Map from attributes (strings) to validators (functions)
-	private $_rules;
+	// Map from attributes (strings) to validators (functions which return one
+	// or more error messages, thus a string or an array of strings).
+	protected $rules;
 
-	private $_errors;
+	protected $errors;
 
 	public function __construct(array $rules) {
-		$this->_rules = $rules;
+		$this->rules = $rules;
 	}
 
-	public function validate(array $data, array $attrs = null): self {
-		$this->_errors = [];
+	public function validate(array $data, array $attrs = null): bool {
+		$this->errors = [];
+		$attrsIsNotNull = $attrs !== null;
 
-		foreach ($this->_rules as $attr => $func) {
-			if ($attrs !== null && !in_array($attr, $attrs))
+		foreach ($this->rules as $attr => $func) {
+			if ($attrsIsNotNull && !in_array($attr, $attrs))
 				continue;
 
-			$res = call_user_func($func, $data[$attr]);
+			// The $data is passed again for the cases when a comparison
+			// between different fields needs to be done
+			$res = call_user_func($func, $data[$attr], $data);
 			if ($res)
-				$this->_errors[$attr] = is_array($res) ? $res : [$res];
+				$this->errors[$attr] = is_array($res) ? $res : [$res];
 		}
 
-		return $this;
-	}
-
-	public function errors(): array {
-		return $this->_errors;
+		return $this->isValid();
 	}
 
 	public function isValid(): bool {
-		return empty($this->_errors);
+		return !!$this->errors;
+	}
+
+	public function errors(): array {
+		return $this->errors;
 	}
 }
-

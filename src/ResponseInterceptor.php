@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 require_once 'Interceptor.php';
 
 /**
@@ -9,4 +11,3 @@ require_once 'Interceptor.php';
  * CORS support.
  */
 interface ResponseInterceptor extends Interceptor {}
-

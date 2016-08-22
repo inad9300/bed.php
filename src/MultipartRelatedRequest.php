@@ -1,5 +1,9 @@
 <?php
 
+namespace bed;
+
+require_once 'MultipartRelatedChunk';
+
 /**
  * Class representing requests whose value for the Content-Type header is
  * "multipart/related". It parses and returns the different chunks embedded in
@@ -29,79 +33,32 @@
  */
 class MultipartRelatedRequest {
 
-	private $_chunks;
+	protected $chunks;
 
 	public function __construct(string $payload, string $boundary) {
 		$parts = preg_split("/-+$boundary/", $payload);
-		
+
 		// Get rid of last "--"
 		array_pop($parts);
-		
+
 		// Get rid of original headers
 		array_shift($parts);
 
 		foreach ($parts as $part) {
 			$part = trim($part);
 
-			if (empty($part)) continue;
+			if (!$part) continue;
 
 			list($headers, $body) = explode("\n\n", $part, 2);
-			$this->_chunks[] = new __MultipartRelatedChunk__($headers, $body);
+			$this->chunks[] = new MultipartRelatedChunk($headers, $body);
 		}
 	}
 
 	public function getChunk(int $n) {
-		return $this->_chunks[$n] ?? null;
+		return $this->chunks[$n] ?? null;
 	}
 
 	public function getChunks() {
-		return $this->_chunks;
+		return $this->chunks;
 	}
 }
-
-/**
- * Class representing each of the chunks embedded on the multipart request,
- * giving access to their different parts: headers and payload (body).
- */
-class __MultipartRelatedChunk__ {
-
-	private $_headers;
-	private $_payload;
-
-	public function __construct(string $rawHeaders, string $payload) {
-		$headerLines = explode("\n", $rawHeaders);
-		foreach ($headerLines as $headerLine) {
-			list($key, $value) = explode(':', $headerLine, 2);
-			$this->_headers[$key] = trim($value);
-		}
-
-		// Ensure that no meta-data is included
-		$contentType = explode(';', $this->_headers['Content-Type'], 2)[0];
-
-		switch ($contentType) {
-		case 'application/json':
-			$this->_payload = json_decode($payload, true);
-			break;
-		case 'text/xml':
-		case 'application/xml':
-			$this->_payload = new SimpleXMLElement($payload);
-			break;
-		default:
-			$this->_payload = $payload;
-			break;
-		}
-	}
-
-	public function getHeaders(): array {
-		return $this->_headers;
-	}
-
-	public function getHeader(string $key): string {
-		return $this->_headers[$key];
-	}
-
-	public function getPayload() {
-		return $this->_payload;
-	}
-}
-

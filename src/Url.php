@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 /**
  * Class representing a URL with all its parts, as defined by parse_url()
  * (http://php.net/manual/en/function.parse-url.php). In addition, it provides
@@ -10,38 +12,38 @@
  */
 class Url {
 
-	private $_full;
-	private $_fullString;
-	private $_pathChunks;
-	private $_GET; // Analogous to the global $_GET variable
+	protected $full;
+	protected $fullString;
+	protected $pathChunks;
+	protected $_GET; // Analogous to the global $_GET variable
 
 	/**
 	 * Accept a URL, using the current one by default.
 	 */
 	public function __construct(string $url = null) {
-		// NOTE: $_SERVER['REQUEST_SCHEME'] seems not to be reliable
+		// NOTE $_SERVER['REQUEST_SCHEME'] seems not to be reliable
 		$protocol = isset($_SERVER['HTTPS']) ? 'https://' : 'http://';
 
-		$this->_fullString = $url !== null
+		$this->fullString = $url !== null
 			? $url
 			: $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 
-		$this->_full = parse_url($this->_fullString);
-		if ($this->_full === false)
-			throw new InvalidArgumentException(
-				'Malformed URL: ' . $this->_fullString);
+		$this->full = parse_url($this->fullString);
+		if ($this->full === false)
+			throw new \InvalidArgumentException(
+				'Malformed URL: ' . $this->fullString);
 	}
 
 	public function getFull(): string {
-		return $this->_fullString;
+		return $this->fullString;
 	}
 
 	public function getHost(): string {
-		return $this->_full['host'];
+		return $this->full['host'];
 	}
 
 	public function getPath(): string {
-		return $this->_full['path'];
+		return $this->full['path'];
 	}
 
 	/**
@@ -49,32 +51,32 @@ class Url {
 	 * would return '3' given the path '/users/3'.
 	 */
 	public function getPathChunk(int $pos): string {
-		$this->_fillPathChunks();
+		$this->fillPathChunks();
 
-		return $this->_pathChunks[$pos];
+		return $this->pathChunks[$pos];
 	}
 
 	/**
 	 * Get the part of the path right after the one matching the argument, e.g.
-	 * getPathAfter('users') would return '3' given the path '/users/3'.
+	 * given the path '/users/3' getPathAfter('users') would return '3'.
 	 */
 	public function getPathAfter(string $pathPart) {
-		$this->_fillPathChunks();
+		$this->fillPathChunks();
 
-		for ($i = 0, $c = count($this->_pathChunks); $i < $c; ++$i)
-			if ($this->_pathChunks[$i] === $pathPart && $i + 1 < $c)
-				return $this->_pathChunks[$i + 1];
+		for ($i = 0, $c = count($this->pathChunks); $i < $c; ++$i)
+			if ($this->pathChunks[$i] === $pathPart && $i + 1 < $c)
+				return $this->pathChunks[$i + 1];
 
 		return null;
 	}
 
-	private function _fillPathChunks() {
-		if ($this->_pathChunks === null)
-			$this->_pathChunks = explode('/', trim($this->_full['path'], '/'));
+	protected function fillPathChunks() {
+		if ($this->pathChunks === null)
+			$this->pathChunks = explode('/', trim($this->full['path'], '/'));
 	}
 
 	public function getQuery(): string {
-		return $this->_full['query'];
+		return $this->full['query'];
 	}
 
 	public function getParam(string $key): string {
@@ -89,23 +91,22 @@ class Url {
 	}
 
 	public function getFragment(): string {
-		return $this->_full['fragment'];
+		return $this->full['fragment'];
 	}
 
 	public function getPort(): int {
-		return $this->_full['port'];
+		return $this->full['port'];
 	}
 
 	public function getScheme(): string {
-		return $this->_full['scheme'];
+		return $this->full['scheme'];
 	}
 
 	public function getUser(): string {
-		return $this->_full['user'];
+		return $this->full['user'];
 	}
 
 	public function getPass(): string {
-		return $this->_full['pass'];
+		return $this->full['pass'];
 	}
 }
-

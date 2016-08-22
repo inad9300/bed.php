@@ -9,9 +9,9 @@ class UrlTest extends PHPUnit\Framework\TestCase {
      */
 	function _testWrongUrl() {
 		// new Url('');
-		// After a few tries, it was impossible to provide a malformed URL, as
-		// parse_url (http://php.net/manual/en/function.parse-url.php)
-		// understands that term
+		// After a set of tries, it was impossible to provide a malformed URL,
+		// as parse_url understands that term. See more information in
+		// http://php.net/manual/en/function.parse-url.php
 	}
 
 	const TEST_URL = 'https://user:pass@www.google.com:80/some_path?some=query&something=%20weird#some_fragment';
@@ -31,7 +31,7 @@ class UrlTest extends PHPUnit\Framework\TestCase {
 		$this->assertEquals($url->getParam('some'), 'query');
 		$this->assertEquals($url->getParam('something'), ' weird');
 		$this->assertEquals($url->getParams(), [
-			'some' => 'query', 
+			'some' => 'query',
 			'something' => ' weird'
 		]);
 

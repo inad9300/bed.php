@@ -1,98 +1,81 @@
 <?php
 
-// Example of file defining a common setup process
-
-
+// Force the types to be present in function signatures
+// FIXME does not apply to all the files bellow the declaration...
 declare(strict_types=1);
 
-mb_internal_encoding('UTF-8');
+namespace bed;
 
-date_default_timezone_set('UTC');
-
-header_remove('X-Powered-By');
-
-
+// Files required for the setup itself
 require_once 'Env.php';
-require_once 'Router.php';
 require_once 'Response.php';
 require_once 'HttpStatus.php';
-require_once 'Database.php';
 
+/**
+ * Example of function that defines a setup process common to all the
+ * application. May be take as a template, or used as-is. Suggestions on new
+ * things to include or ways to improve it are welcome :)
+ */
+function bootstrap(int $env = Env::PROD) {
 
-// Determine the current environment
+	// Set the encoding of the mb_* functions
+	mb_internal_encoding('UTF-8');
 
-Env::set(Env::TEST);
+	// Set the same timezone as the one used by the database
+	date_default_timezone_set('UTC');
 
+	// Get rid of PHP's default custom header
+	header_remove('X-Powered-By');
 
-// Router configuration
+	// Determine the current environment
+	Env::set($env);
 
-Router::setPathPrefix('/api');
+	// Control which errors are fired depending on the environment
+	if (Env::isProd()) {
+		error_reporting(0);
+		ini_set('display_errors', '0');
+	} else {
+		error_reporting(E_ALL | E_STRICT); // TODO avoid E_NOTICEs
+		ini_set('display_errors', '1');
+	}
 
+	// Handling errors from exceptions
+	set_exception_handler(function (\Throwable $e) {
+		$data = [
+			'title' => 'Unexpected exception',
+			'detail' => $e->getMessage() ?: ''
+		];
 
-// Database configuration
+		if (Env::isDev())
+			$data['debug'] = [
+				'exception' => get_class($e) . ' (' . $e->getCode() . ')',
+				'file' => $e->getFile() . ':' . $e->getLine(),
+				'trace' => $e->getTrace()
+			];
 
-Database::config([
-	'type' => 'mysql',
-	'host' => 'localhost',
-	'name' => 'test',
-	'user' => 'root',
-	'pass' => 'root'
-], [
-	PDO::ATTR_PERSISTENT => true,
-	PDO::ATTR_CASE => PDO::CASE_LOWER,
-	PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-	PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-]);
+		(new Response(HttpStatus::InternalServerError, [], $data))->send();
+	});
 
+	// Handling errors from trigger_error and the alike
+	set_error_handler(function (
+		int $errno,
+		string $errstr,
+		string $errfile,
+		int $errline,
+		array $errcontext
+	) {
+		$data = [
+			'title' => 'Unexpected error',
+			'detail' => $errstr ?: ''
+		];
 
-// Error firing
+		if (Env::isDev())
+			$data['debug'] = [
+				'error' => $errno,
+				'file' => $errfile . ':' . $errline,
+				'context' => $errcontext
+			];
 
-if (Env::isProd()) {
-	error_reporting(0);
-	ini_set('display_errors', '0');
-} else {
-	error_reporting(E_ALL | E_STRICT); // TODO: avoid NOTICEs
-	ini_set('display_errors', '1');
+		(new Response(HttpStatus::InternalServerError, [], $data))->send();
+	});
 }
-
-
-// Error handling
-
-set_exception_handler(function (Throwable $e) {
-	$data = [
-		'title' => 'Unexpected exception',
-		'detail' => $e->getMessage() ?: ''
-	];
-
-	if (Env::isTest())
-		$data['debug'] = [
-			'exception' => get_class($e) . ' (' . $e->getCode() . ')',
-			'file' => $e->getFile() . ':' . $e->getLine(),
-			'trace' => $e->getTrace() // getTraceAsString()
-		];
-
-	(new Response(HttpStatus::InternalServerError, [], $data))->send();
-});
-
-set_error_handler(function (
-	int $errno,
-	string $errstr,
-	string $errfile,
-	int $errline,
-	array $errcontext
-) {
-	$data = [
-		'title' => 'Unexpected error',
-		'detail' => $errstr ?: ''
-	];
-
-	if (Env::isTest())
-		$data['debug'] = [
-			'error' => $errno,
-			'file' => $errfile . ':' . $errline,
-			'context' => $errcontext
-		];
-
-	(new Response(HttpStatus::InternalServerError, [], $data))->send();
-});
-

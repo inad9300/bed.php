@@ -29,8 +29,8 @@ JPEG data
 
 		$this->assertCount(2, $chunks);
 
-		$this->assertEquals($chunks[0]->getPayload(), [ 'name' => 'My File' ]);
-		$this->assertEquals($chunks[1]->getPayload(), 'JPEG data');
+		$this->assertEquals($chunks[0]->getBody(), [ 'name' => 'My File' ]);
+		$this->assertEquals($chunks[1]->getBody(), 'JPEG data');
 
 		$this->assertCount(1, $chunks[0]->getHeaders());
 		$this->assertCount(1, $chunks[1]->getHeaders());

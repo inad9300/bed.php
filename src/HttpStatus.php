@@ -1,7 +1,6 @@
 <?php
 
-// IDEA: build two more interfaces with information about HTTP headers. See
-// https://en.wikipedia.org/wiki/List_of_HTTP_header_fields
+namespace bed;
 
 /**
  * Static map from HTTP statuses' names to their numeric codes, allowing to
@@ -81,4 +80,3 @@ abstract class HttpStatus {
 	const NotExtended = 510;
 	const NetworkAuthenticationRequired = 511;
 }
-

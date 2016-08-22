@@ -1,224 +1,193 @@
 <?php
 
-require_once 'utils/arrays.php';
+namespace bed;
 
-/**
- * The purpose of this class is to hold the different types the columns can
- * take, as an equivalent alternative to PDO predefined constants
- * (http://php.net/manual/en/pdo.constants.php). This alternative is needed
- * in order to be able to mix in the same array regular elements and
- * associative elements, unambiguosly. Thus, the values of the types are given
- * as a string, as oppose to PDO constants, which are integers; and they change
- * each time they are accessed, so next time a different key is used
- *
- * In summary, this allows for a concise syntax when referring to parameters
- * in queries: [ 'x', 'y', Col::INT() => 2, Col::BOOL() => true, 'z' ]
- */
-class Col {
-	// The values are intentionally kept as one-length strings
-	private static $_INT = 'i';
-	private static $_STR = 's';
-	private static $_LOB = 'l';
-	private static $_BOOL = 'b';
-	private static $_NULL = 'n';
-
-	private static $_count = 0;
-
-	public static function INT(): string {
-		return self::_yieldNewKey(self::$_INT);
-	}
-
-	public static function STR(): string {
-		return self::_yieldNewKey(self::$_STR);
-	}
-
-	public static function LOB(): string {
-		return self::_yieldNewKey(self::$_LOB);
-	}
-
-	public static function BOOL(): string {
-		return self::_yieldNewKey(self::$_BOOL);
-	}
-
-	public static function NULL(): string {
-		return self::_yieldNewKey(self::$_NULL);
-	}
-
-	private static function _yieldNewKey(string $prefix): string {
-		return $prefix . self::$_count++;
-	}
-
-	public static function getPdoType(string $colType): int {
-		$realType = substr($colType, 0, 1);
-
-		switch ($realType) {
-		case self::$_INT: return PDO::PARAM_INT;
-		case self::$_STR: return PDO::PARAM_STR;
-		case self::$_LOB: return PDO::PARAM_LOB;
-		case self::$_BOOL: return PDO::PARAM_BOOL;
-		case self::$_NULL: return PDO::PARAM_NULL;
-		default:
-			throw new InvalidArgumentException('Wrong constant used as column type');
-		}
-	}
-}
+require_once 'Col.php';
+require_once 'utils/arrays/isAssoc.php';
 
 /**
  * Database abstraction.
  */
 class Database {
 
-	private static $_dbh;
-	private static $_config;
-	private static $_pdoOptions;
-	private static $_lastStmt;
+	protected $dbh;
+	protected $config;
+	protected $pdoOptions;
+	protected $lastStmt;
 
 	/**
-	 * Wrapper function to centralize all the database configuration.
+	 * Accepts a readable array with the properties needed to build the
+	 * connection string. Plus, an array with PDO options for fine-grain
+	 * configuration.
 	 */
-	public static function config(array $config, array $pdoOptions = null) {
-		// Validate required attributes
+	public function __construct(array $config, array $pdoOptions = null) {
+		// Check presence of required attributes
 		foreach (['type', 'host', 'name', 'user', 'pass'] as $attr)
-			if (empty($config[$attr]))
-				throw new InvalidArgumentException(
+			if (!$config[$attr])
+				throw new \InvalidArgumentException(
 					"The '$attr' is required to configure the database");
 
-		self::$_config = $config;
-		self::$_pdoOptions = $pdoOptions;
+		$this->config = $config;
+		$this->pdoOptions = $pdoOptions;
 	}
 
 	/**
-	 * Obtain the instance representing the database connection (aka database
+	 * Obtain the instance representing the database connection (AKA database
 	 * handler).
 	 */
-	public static function get(): PDO {
+	public function get(): \PDO {
 		// Establish the connection only if the database instance is requested,
 		// and only the first time
-		if (!isset(self::$_dbh)) {
-			$connStr = self::$_config['type']
-					. ':host=' . self::$_config['host']
-					. ';dbname=' . self::$_config['name']
-					. ';charset=' . (self::$_config['charset'] ?? 'utf8mb4');
+		if (!$this->dbh) {
+			$connStr = $this->config['type']
+					. ':host=' . $this->config['host']
+					. ';dbname=' . $this->config['name']
+					. ';charset=' . ($this->config['charset'] ?? 'utf8mb4');
 
-			self::$_dbh = new PDO(
+			$this->dbh = new \PDO(
 				$connStr,
-				self::$_config['user'],
-				self::$_config['pass'],
-				self::$_pdoOptions
+				$this->config['user'],
+				$this->config['pass'],
+				$this->pdoOptions
 			);
 		}
-
-		return self::$_dbh;
+		return $this->dbh;
 	}
 
 	/**
-	 * Return the last prepared/executed statement.
+	 * Return the last run statement.
 	 */
-	public static function getStatement() {
-		return self::$_lastStmt;
+	public function getLastStatement() {
+		return $this->lastStmt;
 	}
+
+	/**
+	 * TODO
+	 */
+	public function startTransaction() {}
+
+	/**
+	 * TODO
+	 */
+	public function endTransaction() {}
 
 	/**
 	 * Simple wrapper for running database queries.
 	 *
+	 * @param $q Database query to be run, as a string. Alternatively, an
+	 * already-prepared statement can be provided, so that the preparation
+	 * can be done simply once.
 	 * @param $params List of parameter values. Optionally, an associative
 	 * element can be provided, whose key would indicate the type (given as
-	 * a Col function), and whose value would be the actual value of the
-	 * parameter, overriding the auto-detection. Alternatively, an array of 
-	 * arrays can be passed, resulting in the query being executed one time
-	 * per item (which are arrays with the conditions earlier explained).
-	 * @param $colTypes List of types in the form of a Col function, which may 
+	 * one of Col's functions), and whose value would be the actual value of
+	 * the parameter, overriding the auto-detection.
+	 * @param $colTypes List of types in the form of a Col function, which may
 	 * be needed for SELECT statements.
 	 */
-	public static function run(
-		string $q,
-		array $params = [],
-		array $colTypes = []
-	) {
-		$stmt = self::get()->prepare($q);
-		self::$_lastStmt = $stmt;
+	public function run($q, array $params = [], array $colTypes = []) {
+		$isSelect = $this->isSelect($q);
+		if (!$isSelect && $colTypes)
+			throw new \InvalidArgumentException(
+				'There is no point on providing column types in non-SELECT statements');
 
-		$isSelect = self::_isSelect($q);
-		if (!$isSelect && !empty($colTypes))
-			throw new InvalidArgumentException('There is no point on providing column types in non-SELECT statements');
-
-		$manyParams = count($params) > 0 
-					? isset($params[0]) && is_array($params[0]) && !utils\arrays\isAssoc($params[0])
-					: false;
-
-		if ($manyParams) {
-			// TODO: redo according to the single-array case
-		}
+		if (is_string($q))
+			$stmt = $this->lastStmt = $this->get()->prepare($q);
+		else if ($q instanceof \PDOStatement)
+			$stmt = $this->lastStmt = $q;
+		else
+			throw new \InvalidArgumentException(
+				'The first parameter must be either a query string or a prepared statement');
 
 		$i = 1;
-		foreach ($params as $key => $param) {
-			$type = is_string($key) 
-				? Col::getPdoType($key)
-				: self::_pdoType($param);
-
-			$stmt->bindParam($i++, $param, $type);
-		}
+		foreach ($params as $key => $val)
+			$stmt->bindParam(
+				$i++,
+				$val,
+				is_string($key)
+					? Col::getPdoType($key)
+					: $this->getPdoType($val)
+			);
 
 		$stmt->execute();
 
-		$data = [];
-		$specialSelect = false;
+		$colsCount = count($colTypes);
+		if ($isSelect) {
+			if ($colsCount === 0)
+				return $stmt->fetchAll();
 
-		if ($isSelect && !empty($colTypes)) {
-			$specialSelect = true;
-
-			for ($i = 0, $l = count($colTypes); $i < $l; $i++) {
-				$col = $stmt->getColumnMeta($i);
-				$type = $colTypes[$i]
+			$meta = [];
+			$types = [];
+			for ($i = 0; $i < $colsCount; ++$i) {
+				// TODO test availability in different database engines
+				$meta[] = $stmt->getColumnMeta($i);
+				$types[] = $colTypes[$i]
 					? Col::getPdoType($colTypes[$i])
-					: ($col['pdo_type'] ?: PDO::PARAM_STR);
+					: ($meta[$i]['pdo_type'] ?: \PDO::PARAM_STR);
 
-				$stmt->bindColumn($i + 1, $data[$col['name']], $type);
+				// First binding, to avoid ending up with a null element
+				$stmt->bindColumn(
+					$i + 1,
+					$res[$meta[$i]['name']],
+					$types[$i]
+				);
 			}
-		}
 
-		if ($specialSelect) {
-			$stmt->fetchAll(PDO::FETCH_BOUND);
+			$data = [];
+
+			// IDEA try to make it work with $stmt->fetchAll(\PDO::FETCH_BOUND);
+			while ($stmt->fetch(\PDO::FETCH_BOUND)) {
+				$data[] = $res;
+
+				// Break the references, otherwise all the elements will point
+				// to the same object, and therefore contain the same data
+				$res = null;
+
+				// Bind the next result, in case there is any more data
+				for ($i = 0; $i < $colsCount; ++$i)
+					$stmt->bindColumn(
+						$i + 1,
+						$res[$meta[$i]['name']],
+						$types[$i]
+					);
+			}
 			return $data;
 		}
 
-		return $isSelect 
-			? $stmt->fetchAll() 
-			: $this->rowCount();
+		return $this->rowCount();
 	}
 
-	// Max. number of bytes a MySQL row may hold
-	const _MYSQL_MAX_SIZE = 65535; 
+	// Upper limit for a variable to be considered a string, in bytes. For
+	// that, the maximum number of bytes MySQL can fit in a row is taken a
+	// reference
+	const STRING_MAX_SIZE = 65535;
 
-	private static function _pdoType($thing): int {
+	protected function getPdoType($thing): int {
 		$phpType = gettype($thing);
 
 		switch ($phpType) {
-		case 'integer': return PDO::PARAM_INT;
-		case 'boolean': return PDO::PARAM_BOOL;
-		case 'resource': return PDO::PARAM_LOB;
-		case 'NULL': return PDO::PARAM_NULL;
+		case 'integer': return \PDO::PARAM_INT;
+		case 'boolean': return \PDO::PARAM_BOOL;
+		case 'resource': return \PDO::PARAM_LOB;
+		case 'NULL': return \PDO::PARAM_NULL;
 		case 'string':
-			// If a large string is given, assume a BLOB. For that, the maximum
-			// number of bytes MySQL can hold in a row is taken as reference
-			if (strlen($thing) > self::_MYSQL_MAX_SIZE)
-				return PDO::PARAM_LOB;
+			// If a large string is given, assume a BLOB
+			if (strlen($thing) > self::STRING_MAX_SIZE)
+				return \PDO::PARAM_LOB;
 
-			return PDO::PARAM_STR;
+			return \PDO::PARAM_STR;
 		default:
-			return PDO::PARAM_STR;
+			return \PDO::PARAM_STR;
 		}
 	}
 
 	// Default trim()'s mask plus left parentheses
-	const _TRIM_SQL_MASK = "( \t\n\r\0\x0B";
+	const TRIM_SQL_MASK = "( \t\n\r\0\x0B";
 
-	private static function _isSelect(string $stmt): bool {
-		return 'SELECT' === strtoupper(
+	protected function isSelect(string $stmt): bool {
+		return 'select' === strtolower(
 			substr(
-				ltrim($stmt, self::_TRIM_SQL_MASK), 0, 6
+				ltrim($stmt, self::TRIM_SQL_MASK), 0, 6
 			)
 		);
 	}
 }
-

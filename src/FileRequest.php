@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 require_once 'MultipartRelatedRequest.php';
 
 /**
@@ -17,4 +19,3 @@ class FileRequest extends MultipartRelatedRequest {
 		return $this->getChunk(1);
 	}
 }
-

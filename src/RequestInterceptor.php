@@ -1,5 +1,7 @@
 <?php
 
+namespace bed;
+
 require_once 'Interceptor.php';
 
 /**
@@ -8,4 +10,3 @@ require_once 'Interceptor.php';
  * may serve to add an authentication layer.
  */
 interface RequestInterceptor extends Interceptor {}
-

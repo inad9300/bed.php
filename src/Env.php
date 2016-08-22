@@ -1,35 +1,35 @@
 <?php
 
+namespace bed;
+
 /**
  * Globally control the current environment of execution. Request it later to
  * conditionally control the execution flow for each case.
  */
 class Env {
 
-	const TEST = 0;
+	const DEV = 0;
 	const PROD = 1;
 
-	private static $_current = self::TEST;
+	protected static $current = self::DEV;
 
 	public static function set(int $env) {
-		if ($env !== self::TEST &&
-			$env !== self::PROD)
-			throw new InvalidArgumentException(
+		if ($env !== self::DEV && $env !== self::PROD)
+			throw new \InvalidArgumentException(
 				'The environment cannot hold such value');
 
-		self::$_current = $env;
+		self::$current = $env;
 	}
 
 	public static function get(): int {
-		return self::$_current;
+		return self::$current;
 	}
 
-	public static function isTest(): bool {
-		return self::$_current === self::TEST;
+	public static function isDev(): bool {
+		return self::$current === self::DEV;
 	}
 
 	public static function isProd(): bool {
-		return self::$_current === self::PROD;
+		return self::$current === self::PROD;
 	}
 }
-
