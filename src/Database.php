@@ -115,8 +115,10 @@ class Database {
 			if ($colsCount === 0)
 				return $stmt->fetchAll();
 
-			$meta = [];
-			$types = [];
+            $res = [];
+            $meta = [];
+            $types = [];
+
 			for ($i = 0; $i < $colsCount; ++$i) {
 				// TODO test availability in different database engines
 				$meta[] = $stmt->getColumnMeta($i);

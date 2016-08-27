@@ -35,7 +35,7 @@ function bootstrap(int $env = Env::PROD) {
 		error_reporting(0);
 		ini_set('display_errors', '0');
 	} else {
-		error_reporting(E_ALL | E_STRICT); // TODO avoid E_NOTICEs
+		error_reporting(E_ALL & ~E_NOTICE);
 		ini_set('display_errors', '1');
 	}
 

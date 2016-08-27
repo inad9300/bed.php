@@ -86,9 +86,9 @@ class Dao {
 
 		$whereClause = $ids === null ? '' :
 			' where ' . $this->idName . ' in (' .
-			\utils\sql\createPlaceholders(count($ids)) . ')';
+			\bed\utils\sql\createPlaceholders(count($ids)) . ')';
 
-		return Database::run(
+		return $this->db->run(
 			'select ' . implode(', ', $this->columnNames)
 			. ' from ' . $this->tableName . $whereClause,
 			$ids,
@@ -97,7 +97,7 @@ class Dao {
 	}
 
 	public function deleteOne(int $id): int {
-		return Database::run(
+		return $this->db->run(
 			'delete from ' . $this->tableName
 			. ' where ' . $this->idName . ' = ?',
 			[Col::INT() => $id]
@@ -110,9 +110,9 @@ class Dao {
 
 		$whereClause = $ids === null ? '' :
 			' where ' . $this->idName . ' in (' .
-			\utils\sql\createPlaceholders(count($ids)) . ')';
+			\bed\utils\sql\createPlaceholders(count($ids)) . ')';
 
-		return Database::run(
+		return $this->db->run(
 			'delete from ' . $this->tableName . $whereClause,
 			$ids
 		);
@@ -122,10 +122,10 @@ class Dao {
 	public function insertOne(array $data): int {
 		$colNames = array_keys($data);
 
-		return Database::run(
+		return $this->db->run(
 			'insert into ' . $this->tableName
 			. '(' . implode(', ', $colNames) . ') values (' .
-				\utils\sql\createPlaceholders(count($colNames)) . ')',
+				\bed\utils\sql\createPlaceholders(count($colNames)) . ')',
 			array_values($data)
 		);
 	}
@@ -140,10 +140,10 @@ class Dao {
 		// different elements, use the insertOne() function in a loop
 		$colNames = array_keys($data[0]);
 
-		return Database::run(
+		return $this->db->run(
 			'insert into ' . $this->tableName
 			. '(' . implode(', ', $colNames) . ') values (' .
-				\utils\sql\createPlaceholders(count($colNames)) . ')',
+				\bed\utils\sql\createPlaceholders(count($colNames)) . ')',
 			array_map(function ($item) {
 				return array_values($item);
 			}, $data)
@@ -163,9 +163,9 @@ class Dao {
 
 		$colNames = array_keys($data);
 
-		return Database::run(
+		return $this->db->run(
 			'update ' . $this->tableName
-			. ' set ' . \utils\sql\buildUpdateBody($colNames)
+			. ' set ' . \bed\utils\sql\buildUpdateBody($colNames)
 			. ' where ' . $this->idName . ' = ?',
 			$params
 		);
@@ -181,9 +181,9 @@ class Dao {
 		// different elements, use the updateOne() function in a loop
 		$colNames = array_keys($data[0]);
 
-		return Database::run(
+		return $this->db->run(
 			'update ' . $this->tableName
-			. ' set ' . \utils\sql\buildUpdateBody($colNames)
+			. ' set ' . \bed\utils\sql\buildUpdateBody($colNames)
 			. ' where ' . $this->idName . ' = ?',
 			array_map(function ($entity) {
 				$id = $entity[$this->idName];

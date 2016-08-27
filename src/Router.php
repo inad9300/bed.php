@@ -316,8 +316,9 @@ class Router {
 	 * NOTE must be called after all the routes are set up.
 	 */
 	protected function runDefault() {
-		if (!$this->defaultHandler) return;
-
+		if (!$this->defaultHandler) {
+            return;
+        }
 		$res = $this->defaultHandler(Request::getInstance(), new Response());
 		if (!$res instanceof Response)
 			throw new \RuntimeException(
