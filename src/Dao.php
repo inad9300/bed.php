@@ -39,15 +39,18 @@ class Dao {
 	}
 
 	protected function getTableName(string $table = null): string {
+		// Allow overriding the default behaviour
 		if ($table !== null)
 			return $table;
 
-		$lowerTable = strtolower($table);
+		// Default table name to the class name, removing the "Dao" suffix if
+		// present
+		$className = strtolower(static::class);
+		$daoPos = strpos($className, 'dao');
+		if ($daoPos === false)
+			$className = substr($className, 0, $daoPos);
 
-		// TODO get after the name of the class - "dao", in lowercase
-		// search for "php remove suffix"
-
-		return '';
+		return $className;
 	}
 
 	protected function getIdName(): string {

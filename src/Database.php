@@ -33,7 +33,8 @@ class Database {
 
 	/**
 	 * Obtain the instance representing the database connection (AKA database
-	 * handler).
+	 * handler). This allows for accessing transaction control and other
+	 * functionality.
 	 */
 	public function get(): \PDO {
 		// Establish the connection only if the database instance is requested,
@@ -60,16 +61,6 @@ class Database {
 	public function getLastStatement() {
 		return $this->lastStmt;
 	}
-
-	/**
-	 * TODO
-	 */
-	public function startTransaction() {}
-
-	/**
-	 * TODO
-	 */
-	public function endTransaction() {}
 
 	/**
 	 * Simple wrapper for running database queries.
