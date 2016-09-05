@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed;
 
 require_once 'Col.php';
@@ -74,6 +76,11 @@ class Database {
 	 * the parameter, overriding the auto-detection.
 	 * @param $colTypes List of types in the form of a Col function, which may
 	 * be needed for SELECT statements.
+	 *
+	 * NOTE this function relies on the PDOStatement::getColumnMeta function
+	 * (http://php.net/manual/en/pdostatement.getcolumnmeta.php) to simplify
+	 * the queries, but this function is marked as EXPERIMENTAL. Thus, please
+	 * verify it is working in your particular conditions before using.
 	 */
 	public function run($q, array $params = [], array $colTypes = []) {
 		$isSelect = $this->isSelect($q);
@@ -111,7 +118,6 @@ class Database {
             $types = [];
 
 			for ($i = 0; $i < $colsCount; ++$i) {
-				// TODO test availability in different database engines
 				$meta[] = $stmt->getColumnMeta($i);
 				$types[] = $colTypes[$i]
 					? Col::getPdoType($colTypes[$i])

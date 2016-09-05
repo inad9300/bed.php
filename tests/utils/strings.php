@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../../src/utils/strings/cut.php';
 
 use namespace \utils\strings;

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../src/MultipartRelatedRequest.php';
 
 class MultipartRelatedRequestTest extends PHPUnit\Framework\TestCase {

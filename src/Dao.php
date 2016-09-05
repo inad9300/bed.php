@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed;
 
 require_once 'Database.php';
@@ -63,6 +65,14 @@ class Dao {
 		}, $colNames);
 	}
 
+	protected function buildTypedArray(array $colNames, array $values): array {
+		$typedArray = [];
+		foreach ($colNames as $idx => $colName)
+			$typedArray[] = [ $this->columns[$colName] => $values[$idx] ];
+
+		return $typedArray;
+	}
+
 	public function exists(int $id): bool {
 		return $this->db->run(
 			'select count(*) as count from ' . $this->tableName
@@ -121,7 +131,6 @@ class Dao {
 		);
 	}
 
-	// TODO include type information for the parameters
 	public function insertOne(array $data): int {
 		$colNames = array_keys($data);
 
@@ -129,18 +138,17 @@ class Dao {
 			'insert into ' . $this->tableName
 			. '(' . implode(', ', $colNames) . ') values (' .
 				\bed\utils\sql\createPlaceholders(count($colNames)) . ')',
-			array_values($data)
+			$this->buildTypedArray($colNames, array_values($data))
 		);
 	}
 
-	// TODO include type information for the parameters
 	public function insertMany(array $data): int {
 		if (count($data) === 0)
 			return 0;
 
 		// Take the keys of the first element, otherwise the query would need
 		// to be prepared many times as opposed to only once. For insertions of
-		// different elements, use the insertOne() function in a loop
+		// different elements, use the insertOne() function in a loop instead
 		$colNames = array_keys($data[0]);
 
 		return $this->db->run(
@@ -148,12 +156,11 @@ class Dao {
 			. '(' . implode(', ', $colNames) . ') values (' .
 				\bed\utils\sql\createPlaceholders(count($colNames)) . ')',
 			array_map(function ($item) {
-				return array_values($item);
+				return $this->buildTypedArray($colNames, array_values($item));
 			}, $data)
 		);
 	}
 
-	// TODO include type information for the parameters
 	public function updateOne(array $data): int {
 		// Make sure that the id is the last parameter
 		$id = $data[$this->idName];
@@ -161,8 +168,8 @@ class Dao {
 			throw new \InvalidArgumentException('Primary key is missing');
 
 		unset($data[$this->idName]);
-		$params = array_values($data);
-		$params[] = $id;
+		$values = array_values($data);
+		$values[] = $id;
 
 		$colNames = array_keys($data);
 
@@ -170,11 +177,10 @@ class Dao {
 			'update ' . $this->tableName
 			. ' set ' . \bed\utils\sql\buildUpdateBody($colNames)
 			. ' where ' . $this->idName . ' = ?',
-			$params
+			$this->buildTypedArray($colNames, $values)
 		);
 	}
 
-	// TODO include type information for the parameters
 	public function updateMany(array $data): int {
 		if (count($data) === 0)
 			return 0;
@@ -198,7 +204,7 @@ class Dao {
 				$values = array_values($entity);
 				$values[] = $id;
 
-				return $values;
+				return $this->buildTypedArray($colNames, $values);
 			}, $data)
 		);
 	}

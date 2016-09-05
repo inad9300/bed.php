@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed;
 
 require_once 'Interceptor.php';
@@ -284,7 +286,6 @@ class Router {
 	 * send proper responses to requests done via the OPTIONS method.
 	 * NOTE must be called after all the routes are set up, before executing
 	 * the default route handler.
-	 * TODO provide the allowed methods in some order. (?)
 	 */
 	protected function checkOptions() {
 		if (!$this->isMethod('OPTIONS'))
@@ -305,7 +306,7 @@ class Router {
 
 		$res = new Response();
 		$res->addHeader([
-			'Allow' => implode(',', array_unique($allowedMethods))
+			'Allow' => implode(',', sort(array_unique($allowedMethods)))
 		]);
 		$res->send();
 	}

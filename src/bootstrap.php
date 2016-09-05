@@ -1,7 +1,5 @@
 <?php
 
-// Force the types to be present in function signatures
-// FIXME does not apply to all the files bellow the declaration...
 declare(strict_types=1);
 
 namespace bed;

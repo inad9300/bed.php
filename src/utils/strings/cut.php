@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed\utils\strings;
 
 function cut(string $text, int $limit, string $tail = '...'): string {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../../src/utils/arrays/isAssoc.php';
 require_once '../../src/utils/arrays/pluck.php';
 require_once '../../src/utils/arrays/first.php';

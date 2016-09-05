@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../../src/utils/dates/isIso8601.php';
 
 use namespace \utils\dates;

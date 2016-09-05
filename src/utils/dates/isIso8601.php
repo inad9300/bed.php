@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed\utils\dates;
 
 function isIso8601(string $date): bool {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace bed\utils\security;
 
 // Source: https://alias.io/2010/01/store-passwords-safely-with-php-and-mysql

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once '../src/Env.php';
 
 class EnvTest extends PHPUnit\Framework\TestCase {
