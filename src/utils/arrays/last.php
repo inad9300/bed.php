@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace bed\\utils\arrays;
+namespace bed\utils\arrays;
 
 function last(array $arr) {
 	$len = count($arr);
