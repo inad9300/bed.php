@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace bed;
 
 require_once 'Col.php';
-require_once 'utils/arrays/isAssoc.php';
 
 /**
  * Database abstraction.
