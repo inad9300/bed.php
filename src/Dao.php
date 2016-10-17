@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace bed;
 
 require_once 'Database.php';
-require_once 'utils/arrays/isAssoc.php';
 require_once 'utils/sql/createPlaceholders.php';
 require_once 'utils/sql/buildUpdateBody.php';
 
