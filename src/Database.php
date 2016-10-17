@@ -76,10 +76,10 @@ class Database {
 	 * @param $colTypes List of types in the form of a Col function, which may
 	 * be needed for SELECT statements.
 	 *
-	 * NOTE this function relies on the PDOStatement::getColumnMeta function
+	 * NOTE run() relies on PDOStatement::getColumnMeta()
 	 * (http://php.net/manual/en/pdostatement.getcolumnmeta.php) to simplify
-	 * the queries, but this function is marked as EXPERIMENTAL. Thus, please
-	 * verify it is working in your particular conditions before using.
+	 * the queries, which is marked as EXPERIMENTAL; thus, please verify it
+	 * is working in your particular conditions before using.
 	 */
 	public function run($q, array $params = [], array $colTypes = []) {
 		$isSelect = $this->isSelect($q);
