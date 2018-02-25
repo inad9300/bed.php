@@ -4,7 +4,7 @@
 	"description": "REST-oriented PHP micro-framework",
 	"keywords": ["REST", "API", "micro-framework"],
 	"homepage": "https://github.com/inad9300/bed.php",
-	"license": "GNU AGPL",
+	"license": "AGPL-3.0-or-later",
 	"require": {
 		"php": "^7.0"
 	},
